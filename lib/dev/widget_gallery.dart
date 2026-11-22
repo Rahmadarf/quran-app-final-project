@@ -50,7 +50,18 @@ class _WidgetGalleryState extends State<WidgetGallery> {
   static const _alKahfi = AssetImage('assets/images/covers/al-kahfi.png');
   static const _yasin = AssetImage('assets/images/covers/yasin.png');
   static const _masjid = AssetImage('assets/images/covers/masjid-petang.png');
-  static const _afasi = AssetImage('assets/images/qari/al-afasi.png');
+  static const _qariAfasi =
+      AssetImage('assets/images/qari/misyari-rasyid-al-afasi.webp');
+  static const _qariSudais =
+      AssetImage('assets/images/qari/abdurrahman-as-sudais.webp');
+  static const _qariJuhany =
+      AssetImage('assets/images/qari/abdullah-al-juhany.webp');
+  static const _qariDossari =
+      AssetImage('assets/images/qari/ibrahim-al-dossari.webp');
+  static const _qariQasim =
+      AssetImage('assets/images/qari/abdul-muhsin-al-qasim.webp');
+  static const _qariYasser =
+      AssetImage('assets/images/qari/yasser-al-dossari.webp');
   static const _starfield =
       AssetImage('assets/images/backgrounds/starfield.png');
 
@@ -141,13 +152,21 @@ class _WidgetGalleryState extends State<WidgetGallery> {
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
-              QariAvatarItem(image: _afasi, name: 'Al-Afasi', selected: true),
+              QariAvatarItem(
+                image: _qariAfasi,
+                name: 'Al-Afasi',
+                selected: true,
+              ),
               SizedBox(width: 16),
-              QariAvatarItem(image: _afasi, name: 'As-Sudais'),
+              QariAvatarItem(image: _qariSudais, name: 'As-Sudais'),
               SizedBox(width: 16),
-              QariAvatarItem(image: _afasi, name: 'Al-Juhany'),
+              QariAvatarItem(image: _qariJuhany, name: 'Al-Juhany'),
               SizedBox(width: 16),
-              QariAvatarItem(image: _afasi, name: 'Al-Dosari'),
+              QariAvatarItem(image: _qariDossari, name: 'I. Al-Dossari'),
+              SizedBox(width: 16),
+              QariAvatarItem(image: _qariQasim, name: 'Al-Qasim'),
+              SizedBox(width: 16),
+              QariAvatarItem(image: _qariYasser, name: 'Y. Al-Dosari'),
             ],
           ),
         ),
@@ -561,7 +580,7 @@ class _WidgetGalleryState extends State<WidgetGallery> {
                     ),
                     const SizedBox(height: 24),
                     QariFooterCard(
-                      image: _afasi,
+                      image: _qariAfasi,
                       name: 'Misyari Rasyid Al-Afasi',
                       subtitle: 'Koleksi Murattal 30 Juz Bersuara Emas',
                       onTap: () {},
