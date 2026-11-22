@@ -1,10 +1,27 @@
-// Smoke test: pastikan UI aktif saat ini (galeri widget) tampil dengan benar.
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:quran_app_final_project/app/app.dart';
 import 'package:quran_app_final_project/dev/widget_gallery.dart';
 
 void main() {
+  testWidgets('Beranda tampil dan tab Pustaka bisa dibuka', (tester) async {
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const QuranApp());
+    await tester.pump();
+
+    expect(find.text('Hello Aisyah!'), findsOneWidget);
+    expect(find.text('Surat Ar-Rahman'), findsWidgets);
+
+    await tester.tap(find.text('Pustaka'));
+    await tester.pump();
+
+    expect(find.text('Pustaka Saya'), findsOneWidget);
+  });
+
   testWidgets('Galeri widget menampilkan rak Qari Favorit', (tester) async {
     // Galeri dirancang untuk lebar layar ponsel (~430dp), bukan surface
     // test default 800x600.

@@ -48,34 +48,47 @@ class BookmarkCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                AppSurface(
-                  color: AppColors.surface,
-                  borderColor: AppColors.border,
-                  radius: 999,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 3,
-                  ),
-                  child: Text(
-                    reference,
-                    style: AppTextStyles.micro.copyWith(
-                      color: AppColors.accentLight,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0,
-                    ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: AppSurface(
+                          color: AppColors.surface,
+                          borderColor: AppColors.border,
+                          radius: 999,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 3,
+                          ),
+                          child: Text(
+                            reference,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.micro.copyWith(
+                              color: AppColors.accentLight,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (page != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            page!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.micro.copyWith(
+                              color: AppColors.textFaint,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (page != null) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    page!,
-                    style: AppTextStyles.micro.copyWith(
-                      color: AppColors.textFaint,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                const Spacer(),
                 IconCircleButton(
                   icon: AppIcons.volume,
                   semanticLabel: 'Dengarkan $reference',

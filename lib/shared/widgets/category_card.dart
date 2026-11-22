@@ -48,7 +48,7 @@ class CategoryCard extends StatelessWidget {
               child: AppIcon(
                 icon,
                 size: 76,
-                color: AppColors.surfaceStrong.withValues(alpha: 0.28),
+                color: AppColors.surfaceStrong.withValues(alpha: 0.18),
               ),
             ),
             Padding(
