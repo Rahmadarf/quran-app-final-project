@@ -139,3 +139,41 @@ class QariAvatarItem extends StatelessWidget {
     );
   }
 }
+
+/// Avatar bulat berisi inisial (mis. "AS") untuk qari tanpa foto.
+class InitialsAvatar extends StatelessWidget {
+  const InitialsAvatar({
+    super.key,
+    required this.initials,
+    this.size = 40,
+    this.fontSize = 13,
+  });
+
+  final String initials;
+  final double size;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: AppColors.accentLight,
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          initials,
+          style: AppTextStyles.custom(
+            size: fontSize,
+            lineHeight: fontSize + 6,
+            weight: FontWeight.w600,
+            color: AppColors.sheet,
+          ),
+        ),
+      ),
+    );
+  }
+}
