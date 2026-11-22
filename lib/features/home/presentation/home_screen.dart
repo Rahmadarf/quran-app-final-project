@@ -72,31 +72,38 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       QariAvatarItem(
-                        image: AssetImage('assets/images/qari/al-afasi-bisht.png'),
+                        image: AssetImage(
+                          'assets/images/qari/misyari-rasyid-al-afasi.webp',
+                        ),
                         name: 'Al-Afasi',
                         selected: true,
-                        alignment: Alignment(0, -0.7),
                       ),
                       SizedBox(width: 16),
                       QariAvatarItem(
-                        image: AssetImage('assets/images/qari/as-sudais.png'),
+                        image: AssetImage(
+                          'assets/images/qari/abdurrahman-as-sudais.webp',
+                        ),
                         name: 'As-Sudais',
-                        alignment: Alignment(-0.2, 0),
                       ),
                       SizedBox(width: 16),
                       QariAvatarItem(
-                        image: AssetImage('assets/images/qari/al-juhany.png'),
+                        image: AssetImage(
+                          'assets/images/qari/abdullah-al-juhany.webp',
+                        ),
                         name: 'Al-Juhany',
-                        alignment: Alignment(0.3, 0),
                       ),
                       SizedBox(width: 16),
                       QariAvatarItem(
-                        image: AssetImage('assets/images/qari/al-dosari.png'),
+                        image: AssetImage(
+                          'assets/images/qari/ibrahim-al-dossari.webp',
+                        ),
                         name: 'Al-Dosari',
                       ),
                       SizedBox(width: 16),
                       QariAvatarItem(
-                        image: AssetImage('assets/images/covers/ar-rahman.png'),
+                        image: AssetImage(
+                          'assets/images/qari/abdul-muhsin-al-qasim.webp',
+                        ),
                         name: 'Al-Qasim',
                       ),
                     ],
