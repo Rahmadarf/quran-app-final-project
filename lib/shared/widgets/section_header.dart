@@ -20,6 +20,7 @@ class SectionHeader extends StatelessWidget {
     this.subtitle,
     this.count,
     this.trailingLabel,
+    this.trailingNote,
     this.onTrailingTap,
     this.onChevronTap,
     this.accentBar = false,
@@ -31,6 +32,9 @@ class SectionHeader extends StatelessWidget {
   final String? subtitle;
   final int? count;
   final String? trailingLabel;
+
+  /// Keterangan polos di kanan tanpa panah dan tanpa aksi (mis. "6 Kategori").
+  final String? trailingNote;
   final VoidCallback? onTrailingTap;
   final VoidCallback? onChevronTap;
   final bool accentBar;
@@ -59,6 +63,11 @@ class SectionHeader extends StatelessWidget {
             ),
           ],
         ),
+      );
+    } else if (trailingNote != null) {
+      trailing = Text(
+        trailingNote!,
+        style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
       );
     } else if (onChevronTap != null) {
       trailing = IconCircleButton(
