@@ -44,4 +44,13 @@ abstract final class AppColors {
   static Color surfaceAt(double opacity) => surface.withValues(alpha: opacity);
 
   static const Color shadow = Color(0x1A000000); // rgba(0,0,0,0.1)
+
+  // Panel pemilih (bottom sheet) dan kartu pemilih, frame Figma "Pilih ...".
+  // Paletnya sedikit berbeda dari layar lain (teks krem, abu kebiruan).
+  static const Color sheet = Color(0xFF091424);
+  static const Color scrim = Color(0x99061810); // rgba(6,24,16,0.6)
+  static const Color sheetText = Color(0xFFF4F3E8);
+  static const Color sheetMuted = Color(0xFFB8CCC2);
+  static const Color sheetIcon = Color(0xFF88ADC3);
+  static const Color numberBadge = Color(0xFF284374);
 }

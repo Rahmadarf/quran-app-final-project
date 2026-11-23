@@ -10,15 +10,94 @@ import '../../../shared/widgets/pill_button.dart';
 import '../application/player_controller.dart';
 import 'ayah_lyrics_view.dart';
 import 'player_controls.dart';
-import 'qari_footer_card.dart';
+import 'ayah_picker_sheet.dart';
+import 'playback_selector_card.dart';
+import 'qari_picker_sheet.dart';
+import 'surah_picker_sheet.dart';
 import 'seek_bar.dart';
 
 /// Fullscreen Player: ayat bergaya lirik, bilah geser, dan kontrol utama.
 ///
 /// Teks ayat di sini adalah contoh dari Figma (Ar-Rahman 13); pada
-/// implementasi nyata diisi dari data surat yang sedang diputar.
-class FullscreenPlayerScreen extends StatelessWidget {
+/// implementasi nyata diisi dari data surat yang sedang diputar. Daftar qari
+/// dan surat pada pemilih juga contoh dari Figma; kelak dari repositori.
+class FullscreenPlayerScreen extends StatefulWidget {
   const FullscreenPlayerScreen({super.key});
+
+  @override
+  State<FullscreenPlayerScreen> createState() => _FullscreenPlayerScreenState();
+}
+
+class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
+  static const _qaris = [
+    QariOption(
+      id: '05',
+      name: 'Misyari Rasyid Al-Afasi',
+      origin: 'Kuwait · Murattal',
+      photo: AssetImage('assets/images/qari/misyari-rasyid-al-afasi.webp'),
+    ),
+    QariOption(
+      id: '01',
+      name: 'Abdurrahman As-Sudais',
+      origin: 'Arab Saudi · Murattal',
+    ),
+    QariOption(
+      id: '02',
+      name: 'Saad Al-Ghamdi',
+      origin: 'Arab Saudi · Murattal',
+    ),
+    QariOption(
+      id: '03',
+      name: 'Maher Al-Muaiqly',
+      origin: 'Arab Saudi · Murattal',
+    ),
+    QariOption(
+      id: '04',
+      name: 'Abdul Basit Abdus Samad',
+      origin: 'Mesir · Murattal',
+    ),
+  ];
+
+  static const _surahs = [
+    SurahOption(number: 1, name: 'Al-Fatihah', ayahCount: 7),
+    SurahOption(number: 2, name: 'Al-Baqarah', ayahCount: 286),
+    SurahOption(number: 18, name: 'Al-Kahf', ayahCount: 110),
+    SurahOption(number: 36, name: 'Ya Sin', ayahCount: 83),
+    SurahOption(number: 55, name: 'Ar-Rahman', ayahCount: 78),
+    SurahOption(number: 67, name: 'Al-Mulk', ayahCount: 30),
+    SurahOption(number: 112, name: 'Al-Ikhlas', ayahCount: 4),
+  ];
+
+  QariOption _qari = _qaris.first;
+  SurahOption _surah = _surahs[4];
+  int _ayah = 13;
+
+  Future<void> _pickQari() async {
+    final result =
+        await showQariPicker(context, options: _qaris, selected: _qari);
+    if (result != null) setState(() => _qari = result);
+  }
+
+  Future<void> _pickSurah() async {
+    final result =
+        await showSurahPicker(context, options: _surahs, selected: _surah);
+    if (result != null && result.number != _surah.number) {
+      setState(() {
+        _surah = result;
+        _ayah = 1;
+      });
+    }
+  }
+
+  Future<void> _pickAyah() async {
+    final result = await showAyahPicker(
+      context,
+      surahName: _surah.name,
+      ayahCount: _surah.ayahCount,
+      current: _ayah,
+    );
+    if (result != null) setState(() => _ayah = result);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +166,7 @@ class FullscreenPlayerScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Ar-Rahman',
+                      _surah.name,
                       style: AppTextStyles.custom(
                         size: 18,
                         lineHeight: 24,
@@ -152,7 +231,7 @@ class FullscreenPlayerScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Surat Ar-Rahman',
+                                'Surat ${_surah.name}',
                                 style: AppTextStyles.custom(
                                   size: 22,
                                   lineHeight: 33,
@@ -162,7 +241,7 @@ class FullscreenPlayerScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Misyari Rasyid Al-Afasi ·',
+                                '${_qari.name} ·',
                                 style: AppTextStyles.custom(
                                   size: 14,
                                   lineHeight: 20,
@@ -209,7 +288,7 @@ class FullscreenPlayerScreen extends StatelessWidget {
                     PlayerTimeline(
                       elapsed: formatClock(player.elapsedSeconds),
                       remaining: '-${formatClock(player.remainingSeconds)}',
-                      centerLabel: 'Ayat 13 dari 78',
+                      centerLabel: 'Ayat $_ayah dari ${_surah.ayahCount}',
                     ),
                     const SizedBox(height: 16),
                     PlayerControls(
@@ -223,11 +302,25 @@ class FullscreenPlayerScreen extends StatelessWidget {
                       onNext: () => player.seek(1),
                     ),
                     const SizedBox(height: 24),
-                    QariFooterCard(
-                      image: const AssetImage('assets/images/qari/misyari-rasyid-al-afasi.webp'),
-                      name: 'Misyari Rasyid Al-Afasi',
-                      subtitle: 'Koleksi Murattal 30 Juz Bersuara Emas',
-                      onTap: () {},
+                    PlaybackSelectorCard(
+                      qariName: _qari.name,
+                      qariAvatar: _qari.photo == null
+                          ? null
+                          : ClipOval(
+                              child: Image(
+                                image: _qari.photo!,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                                alignment: _qari.photoAlignment,
+                                excludeFromSemantics: true,
+                              ),
+                            ),
+                      surahName: _surah.name,
+                      ayahNumber: _ayah,
+                      onQariTap: _pickQari,
+                      onSurahTap: _pickSurah,
+                      onAyahTap: _pickAyah,
                     ),
                   ],
                 ),

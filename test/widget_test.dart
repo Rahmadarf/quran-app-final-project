@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:quran_app_final_project/app/app.dart';
+import 'package:quran_app_final_project/app/router.dart';
 import 'package:quran_app_final_project/dev/widget_gallery.dart';
 
 void main() {
@@ -20,6 +21,33 @@ void main() {
     await tester.pump();
 
     expect(find.text('Pustaka Saya'), findsOneWidget);
+  });
+
+  testWidgets('Pemilih surat di Fullscreen Player mengganti surat', (tester) async {
+    tester.view.physicalSize = const Size(390 * 2, 844 * 2);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const QuranApp());
+    await tester.pump();
+
+    tester
+        .state<NavigatorState>(find.byType(Navigator))
+        .pushNamed(AppRoutes.player);
+    await tester.pumpAndSettle();
+    expect(find.text('Surat Ar-Rahman'), findsWidgets);
+
+    await tester.tap(find.text('Pilih Surat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Pilih surat'), findsOneWidget);
+
+    await tester.tap(find.text('Al-Kahf'));
+    await tester.pumpAndSettle();
+
+    // Panel tertutup dan surat berganti; ayat kembali ke 1.
+    expect(find.text('Pilih surat'), findsNothing);
+    expect(find.text('Surat Al-Kahf'), findsOneWidget);
+    expect(find.text('AYAT 1 DARI 110'), findsOneWidget);
   });
 
   testWidgets('Galeri widget menampilkan rak Qari Favorit', (tester) async {

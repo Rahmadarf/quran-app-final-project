@@ -6,15 +6,20 @@ import '../features/catalog/presentation/tafsir_card.dart';
 import '../features/history/presentation/history_row.dart';
 import '../features/library/presentation/bookmark_card.dart';
 import '../features/player/presentation/ayah_lyrics_view.dart';
+import '../features/player/presentation/ayah_picker_sheet.dart';
 import '../features/player/presentation/mini_player.dart';
 import '../features/player/presentation/player_controls.dart';
+import '../features/player/presentation/playback_selector_card.dart';
 import '../features/player/presentation/qari_footer_card.dart';
+import '../features/player/presentation/qari_picker_sheet.dart';
 import '../features/player/presentation/seek_bar.dart';
+import '../features/player/presentation/surah_picker_sheet.dart';
 import '../features/reader/presentation/ayah_tile.dart';
 import '../features/reader/presentation/basmalah_header.dart';
 import '../features/reader/presentation/surah_header_card.dart';
 import '../features/reader/presentation/sync_status_pill.dart';
 import '../shared/widgets/action_row_card.dart';
+import '../shared/widgets/app_button.dart';
 import '../shared/widgets/app_icon.dart';
 import '../shared/widgets/app_search_field.dart';
 import '../shared/widgets/app_top_bar.dart';
@@ -25,9 +30,11 @@ import '../shared/widgets/filter_chip_bar.dart';
 import '../shared/widgets/icon_circle_button.dart';
 import '../shared/widgets/media_card.dart';
 import '../shared/widgets/media_row.dart';
+import '../shared/widgets/number_stepper.dart';
 import '../shared/widgets/pill_button.dart';
 import '../shared/widgets/quote_banner.dart';
 import '../shared/widgets/section_header.dart';
+import '../shared/widgets/selector_field.dart';
 import '../shared/widgets/shelf.dart';
 
 /// Katalog komponen untuk pengembangan: semua widget dengan data contoh dari
@@ -44,6 +51,7 @@ class _WidgetGalleryState extends State<WidgetGallery> {
   int _chip = 0;
   int _tafsirChip = 0;
   double _seek = 0.24;
+  int _stepper = 13;
 
   static const _avatar = AssetImage('assets/images/avatars/aisyah.png');
   static const _arRahman = AssetImage('assets/images/covers/ar-rahman.png');
@@ -88,6 +96,8 @@ class _WidgetGalleryState extends State<WidgetGallery> {
                 _reader(),
                 _title('6. Tombol dan lencana'),
                 _buttons(),
+                _title('7. Pemilih qari, surat, dan ayat'),
+                _pickers(),
                 const SizedBox(height: 40),
               ],
             ),
@@ -814,6 +824,89 @@ class _WidgetGalleryState extends State<WidgetGallery> {
             semanticLabel: 'Urutkan',
             style: IconCircleStyle.outlined,
             iconColor: AppColors.skyLabel,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pickers() {
+    const qaris = [
+      QariOption(
+        id: '05',
+        name: 'Misyari Rasyid Al-Afasi',
+        origin: 'Kuwait · Murattal',
+      ),
+      QariOption(
+        id: '01',
+        name: 'Abdurrahman As-Sudais',
+        origin: 'Arab Saudi · Murattal',
+      ),
+      QariOption(
+        id: '02',
+        name: 'Saad Al-Ghamdi',
+        origin: 'Arab Saudi · Murattal',
+      ),
+    ];
+    const surahs = [
+      SurahOption(number: 1, name: 'Al-Fatihah', ayahCount: 7),
+      SurahOption(number: 2, name: 'Al-Baqarah', ayahCount: 286),
+      SurahOption(number: 18, name: 'Al-Kahf', ayahCount: 110),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PlaybackSelectorCard(
+            qariName: 'Misyari Rasyid Al-Afasi',
+            surahName: 'Al-Fatihah',
+            ayahNumber: 1,
+            onQariTap: () => showQariPicker(
+              context,
+              options: qaris,
+              selected: qaris.first,
+            ),
+            onSurahTap: () => showSurahPicker(
+              context,
+              options: surahs,
+              selected: surahs.first,
+            ),
+            onAyahTap: () => showAyahPicker(
+              context,
+              surahName: 'Al-Fatihah',
+              ayahCount: 7,
+              current: 1,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Row(
+            children: [
+              Expanded(
+                child: SelectorField(label: 'Pilih Surat', value: 'Al-Fatihah'),
+              ),
+              SizedBox(width: 8),
+              SizedBox(
+                width: 106,
+                child: SelectorField(label: 'Ayat', value: '1'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          NumberStepper(
+            value: _stepper,
+            min: 1,
+            max: 78,
+            onChanged: (v) => setState(() => _stepper = v),
+          ),
+          const SizedBox(height: 16),
+          const AppButton(label: 'Ayat pertama'),
+          const SizedBox(height: 8),
+          const AppButton(
+            label: 'Selesai',
+            style: AppButtonStyle.primary,
+            height: 50,
           ),
         ],
       ),
