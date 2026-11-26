@@ -4,18 +4,42 @@ import '../features/player/presentation/fullscreen_player.dart';
 import '../features/reader/presentation/reader_screen.dart';
 import 'app_shell.dart';
 
-/// Nama rute (docs/07 §1.2). Router ini sementara memakai `Navigator` bawaan;
-/// diganti `go_router` bila keputusan stack navigasi sudah final.
+/// Nama rute (docs/07 §1.2).
 abstract final class AppRoutes {
   static const String home = '/';
   static const String reader = '/quran/55';
   static const String player = '/putar';
+
+  static String readerFor(int surahNumber, {int? ayah}) {
+    if (ayah != null && ayah > 0) {
+      return '/quran/$surahNumber?ayat=$ayah';
+    }
+    return '/quran/$surahNumber';
+  }
 }
 
 Route<dynamic> onGenerateRoute(RouteSettings settings) {
-  switch (settings.name) {
-    case AppRoutes.player:
-      return _slideUp(settings, const FullscreenPlayerScreen());
+  final name = settings.name ?? AppRoutes.home;
+  final uri = Uri.tryParse(name);
+
+  if (name == AppRoutes.player || name == '/player') {
+    return _slideUp(settings, const FullscreenPlayerScreen());
+  }
+
+  if (uri != null &&
+      uri.pathSegments.length == 2 &&
+      uri.pathSegments.first == 'quran') {
+    final surahNumber = int.tryParse(uri.pathSegments[1]);
+    if (surahNumber != null && surahNumber >= 1 && surahNumber <= 114) {
+      final ayah = int.tryParse(uri.queryParameters['ayat'] ?? '');
+      return _fade(
+        settings,
+        ReaderScreen(surahNumber: surahNumber, initialAyah: ayah),
+      );
+    }
+  }
+
+  switch (name) {
     case AppRoutes.reader:
       return _fade(settings, const ReaderScreen());
     case AppRoutes.home:

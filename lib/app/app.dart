@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/widgets.dart';
 
 import '../features/player/application/player_controller.dart';
+import '../features/quran/application/quran_providers.dart';
+import '../features/reader/application/reader_controller.dart';
 import 'app_colors.dart';
 import 'router.dart';
 
@@ -16,10 +20,19 @@ class QuranApp extends StatefulWidget {
 
 class _QuranAppState extends State<QuranApp> {
   final PlayerController _player = PlayerController();
+  final ReaderController _reader = ReaderController();
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_player.restore());
+    unawaited(_reader.restore());
+  }
 
   @override
   void dispose() {
     _player.dispose();
+    _reader.dispose();
     super.dispose();
   }
 
@@ -27,7 +40,9 @@ class _QuranAppState extends State<QuranApp> {
   Widget build(BuildContext context) {
     return PlayerScope(
       controller: _player,
-      child: WidgetsApp(
+      child: ReaderScope(
+        controller: _reader,
+        child: WidgetsApp(
         title: 'Quran Audio',
         color: AppColors.background,
         debugShowCheckedModeBanner: false,
@@ -42,6 +57,7 @@ class _QuranAppState extends State<QuranApp> {
           behavior: const _AppScrollBehavior(),
           child: child ?? const SizedBox.shrink(),
         ),
+      ),
       ),
     );
   }

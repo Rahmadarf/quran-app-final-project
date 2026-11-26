@@ -1,26 +1,33 @@
-import 'package:flutter/widgets.dart';
+import 'dart:async';
+
+import 'package:flutter/widgets.dart' hide RepeatMode;
 
 import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
+import '../../../core/utils/duration_format.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_icon.dart';
+import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/app_top_bar.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pill_button.dart';
+import '../../../shared/widgets/pressable.dart';
 import '../application/player_controller.dart';
+import '../domain/player_state.dart';
 import 'ayah_lyrics_view.dart';
-import 'player_controls.dart';
 import 'ayah_picker_sheet.dart';
 import 'playback_selector_card.dart';
+import 'player_controls.dart';
 import 'qari_picker_sheet.dart';
-import 'surah_picker_sheet.dart';
+import 'queue_sheet.dart';
 import 'seek_bar.dart';
+import 'sleep_timer_sheet.dart';
+import 'speed_sheet.dart';
+import 'surah_picker_sheet.dart';
 
-/// Fullscreen Player: ayat bergaya lirik, bilah geser, dan kontrol utama.
-///
-/// Teks ayat di sini adalah contoh dari Figma (Ar-Rahman 13); pada
-/// implementasi nyata diisi dari data surat yang sedang diputar. Daftar qari
-/// dan surat pada pemilih juga contoh dari Figma; kelak dari repositori.
+/// Fullscreen Player: ayat bergaya lirik, bilah geser, kontrol utama, serta
+/// pemilih qari, surat, kecepatan, timer tidur, dan antrean (docs/05 §1).
 class FullscreenPlayerScreen extends StatefulWidget {
   const FullscreenPlayerScreen({super.key});
 
@@ -37,28 +44,38 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
       photo: AssetImage('assets/images/qari/misyari-rasyid-al-afasi.webp'),
     ),
     QariOption(
-      id: '01',
+      id: '03',
       name: 'Abdurrahman As-Sudais',
       origin: 'Arab Saudi · Murattal',
+      photo: AssetImage('assets/images/qari/abdurrahman-as-sudais.webp'),
+    ),
+    QariOption(
+      id: '01',
+      name: 'Abdullah Al-Juhany',
+      origin: 'Arab Saudi · Murattal',
+      photo: AssetImage('assets/images/qari/abdullah-al-juhany.webp'),
     ),
     QariOption(
       id: '02',
-      name: 'Saad Al-Ghamdi',
+      name: 'Abdul Muhsin Al-Qasim',
       origin: 'Arab Saudi · Murattal',
-    ),
-    QariOption(
-      id: '03',
-      name: 'Maher Al-Muaiqly',
-      origin: 'Arab Saudi · Murattal',
+      photo: AssetImage('assets/images/qari/abdul-muhsin-al-qasim.webp'),
     ),
     QariOption(
       id: '04',
-      name: 'Abdul Basit Abdus Samad',
-      origin: 'Mesir · Murattal',
+      name: 'Ibrahim Al-Dossari',
+      origin: 'Arab Saudi · Murattal',
+      photo: AssetImage('assets/images/qari/ibrahim-al-dossari.webp'),
+    ),
+    QariOption(
+      id: '06',
+      name: 'Yasser Al-Dosari',
+      origin: 'Arab Saudi · Murattal',
+      photo: AssetImage('assets/images/qari/yasser-al-dossari.webp'),
     ),
   ];
 
-  static const _surahs = [
+  static const _fallbackSurahs = [
     SurahOption(number: 1, name: 'Al-Fatihah', ayahCount: 7),
     SurahOption(number: 2, name: 'Al-Baqarah', ayahCount: 286),
     SurahOption(number: 18, name: 'Al-Kahf', ayahCount: 110),
@@ -69,23 +86,54 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
   ];
 
   QariOption _qari = _qaris.first;
-  SurahOption _surah = _surahs[4];
+  SurahOption _surah = _fallbackSurahs[4];
   int _ayah = 13;
 
-  Future<void> _pickQari() async {
+  Future<void> _pickQari(PlayerController player) async {
     final result =
         await showQariPicker(context, options: _qaris, selected: _qari);
-    if (result != null) setState(() => _qari = result);
+    if (result != null && mounted) {
+      setState(() => _qari = result);
+      unawaited(
+        player.playSurah(
+          _surah.number,
+          qariId: result.id,
+          qariName: result.name,
+        ),
+      );
+    }
   }
 
-  Future<void> _pickSurah() async {
+  Future<void> _pickSurah(PlayerController player) async {
+    var options = _fallbackSurahs;
+    if (player.cachedSurahs.isNotEmpty) {
+      options = player.cachedSurahs
+          .map(
+            (s) => SurahOption(
+              number: s.number,
+              name: s.latinName,
+              ayahCount: s.ayahCount,
+            ),
+          )
+          .toList(growable: false);
+    } else {
+      unawaited(player.loadSurahs().then<void>((_) {}, onError: (_) {}));
+    }
+
     final result =
-        await showSurahPicker(context, options: _surahs, selected: _surah);
-    if (result != null && result.number != _surah.number) {
+        await showSurahPicker(context, options: options, selected: _surah);
+    if (result != null && result.number != _surah.number && mounted) {
       setState(() {
         _surah = result;
         _ayah = 1;
       });
+      unawaited(
+        player.playSurah(
+          result.number,
+          qariId: _qari.id,
+          qariName: _qari.name,
+        ),
+      );
     }
   }
 
@@ -96,12 +144,22 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
       ayahCount: _surah.ayahCount,
       current: _ayah,
     );
-    if (result != null) setState(() => _ayah = result);
+    if (result != null && mounted) setState(() => _ayah = result);
   }
 
   @override
   Widget build(BuildContext context) {
     final player = PlayerScope.of(context);
+    final state = player.state;
+    final current = state.current;
+
+    final activeSurahNumber = current?.surahNumber ?? _surah.number;
+    final activeSurahName =
+        (current?.meta['surahLatinName'] as String?) ?? _surah.name;
+    final activeAyahCount = current?.ayahCount ?? _surah.ayahCount;
+    final activeQariName = current?.subtitle ?? _qari.name;
+    final displayTitle = current?.title ?? 'Surat ${_surah.name}';
+    final isSurah = current == null || current.kind.hasReader;
 
     return ColoredBox(
       color: AppColors.background,
@@ -159,14 +217,18 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'MEMUTAR SURAT',
+                      state.queueSource?.toUpperCase() ?? 'MEMUTAR SURAT',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.micro.copyWith(
                         color: AppColors.accentLight,
                         letterSpacing: 1,
                       ),
                     ),
                     Text(
-                      _surah.name,
+                      isSurah ? activeSurahName : displayTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.custom(
                         size: 18,
                         lineHeight: 24,
@@ -187,20 +249,61 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                       iconColor: AppColors.textMuted,
                       onTap: () {},
                     ),
-                    const SizedBox(width: 4),
-                    PillButton(
-                      label: 'Mushaf',
-                      leadingIcon: AppIcons.mushaf,
-                      iconSize: 14,
-                      height: 36,
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      style: PillButtonStyle.highlight,
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.reader),
-                    ),
+                    if (isSurah) ...[
+                      const SizedBox(width: 4),
+                      PillButton(
+                        label: 'Mushaf',
+                        leadingIcon: AppIcons.mushaf,
+                        iconSize: 14,
+                        height: 36,
+                        padding: const EdgeInsets.symmetric(horizontal: 13),
+                        style: PillButtonStyle.highlight,
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.reader),
+                      ),
+                    ],
                   ],
                 ),
               ),
+              if (state.phase == PlayerPhase.error && state.error != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: AppSurface(
+                    color: const Color(0x33EF4444),
+                    borderColor: const Color(0x66EF4444),
+                    radius: 12,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            state.error!.message,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textPlayerTitle,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        AppButton(
+                          label: 'Coba lagi',
+                          height: 32,
+                          onTap: player.retry,
+                        ),
+                        if (state.error!.canSkip) ...[
+                          const SizedBox(width: 6),
+                          AppButton(
+                            label: 'Lewati',
+                            height: 32,
+                            onTap: player.next,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
               const Expanded(
                 child: Center(
                   child: SingleChildScrollView(
@@ -231,7 +334,9 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Surat ${_surah.name}',
+                                displayTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.custom(
                                   size: 22,
                                   lineHeight: 33,
@@ -241,7 +346,9 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                                 ),
                               ),
                               Text(
-                                '${_qari.name} ·',
+                                '$activeQariName · ${current?.source.name == 'local' ? 'Lokal' : 'Stream'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: AppTextStyles.custom(
                                   size: 14,
                                   lineHeight: 20,
@@ -277,33 +384,75 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    SeekBar(
-                      value: player.progress,
-                      buffered: (player.progress + 0.4).clamp(0.0, 1.0),
-                      semanticValue:
-                          '${formatClock(player.elapsedSeconds)} dari ${formatClock(player.totalSeconds)}',
-                      onChanged: player.seek,
-                    ),
-                    const SizedBox(height: 4),
-                    PlayerTimeline(
-                      elapsed: formatClock(player.elapsedSeconds),
-                      remaining: '-${formatClock(player.remainingSeconds)}',
-                      centerLabel: 'Ayat $_ayah dari ${_surah.ayahCount}',
+                    RepaintBoundary(
+                      child: PlaybackPositionBuilder(
+                        positionListenable: player.positionListenable,
+                        builder: (context, pos) => Column(
+                          children: [
+                            SeekBar(
+                              value: pos.progress,
+                              buffered: pos.bufferedProgress,
+                              semanticValue:
+                                  '${formatDurationSemantic(pos.position)} dari ${formatDurationSemantic(pos.duration)}',
+                              onChanged:
+                                  pos.duration != null ? player.seek : null,
+                            ),
+                            const SizedBox(height: 4),
+                            PlayerTimeline(
+                              elapsed: formatDuration(pos.position),
+                              remaining:
+                                  formatRemaining(pos.position, pos.duration),
+                              centerLabel: isSurah
+                                  ? 'Ayat ${_ayah.clamp(1, activeAyahCount)} dari $activeAyahCount'
+                                  : null,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     PlayerControls(
                       playing: player.playing,
-                      shuffleOn: player.shuffle,
-                      repeatOne: player.repeatOne,
+                      shuffleOn: state.shuffle,
+                      repeatOne: state.repeat != RepeatMode.off,
                       onShuffle: player.toggleShuffle,
                       onPlayPause: player.togglePlay,
-                      onRepeat: player.toggleRepeatOne,
-                      onPrevious: () => player.seek(0),
-                      onNext: () => player.seek(1),
+                      onRepeat: player.cycleRepeat,
+                      onPrevious: player.previous,
+                      onNext: player.next,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _MiniActionChip(
+                          label: '${state.speed}×',
+                          semanticLabel: 'Kecepatan putar ${state.speed} kali',
+                          onTap: () => showSpeedSheet(context, player),
+                        ),
+                        _MiniActionChip(
+                          icon: AppIcons.timer,
+                          label: state.sleepAtEndOfItem
+                              ? 'Akhir item'
+                              : state.sleepAt != null
+                                  ? 'Timer aktif'
+                                  : 'Timer',
+                          active:
+                              state.sleepAt != null || state.sleepAtEndOfItem,
+                          semanticLabel: 'Timer tidur',
+                          onTap: () => showSleepTimerSheet(context, player),
+                        ),
+                        _MiniActionChip(
+                          icon: AppIcons.scroll,
+                          label: 'Antrean (${state.queue.length})',
+                          semanticLabel: 'Buka antrean putar',
+                          onTap: () => showQueueSheet(context, player),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     PlaybackSelectorCard(
-                      qariName: _qari.name,
+                      qariName: activeQariName,
                       qariAvatar: _qari.photo == null
                           ? null
                           : ClipOval(
@@ -316,11 +465,11 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                                 excludeFromSemantics: true,
                               ),
                             ),
-                      surahName: _surah.name,
-                      ayahNumber: _ayah,
-                      onQariTap: _pickQari,
-                      onSurahTap: _pickSurah,
-                      onAyahTap: _pickAyah,
+                      surahName: activeSurahName,
+                      ayahNumber: _ayah.clamp(1, activeAyahCount),
+                      onQariTap: () => _pickQari(player),
+                      onSurahTap: () => _pickSurah(player),
+                      onAyahTap: activeSurahNumber > 0 ? _pickAyah : () {},
                     ),
                   ],
                 ),
@@ -328,6 +477,56 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MiniActionChip extends StatelessWidget {
+  const _MiniActionChip({
+    this.icon,
+    required this.label,
+    required this.semanticLabel,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final AppIcons? icon;
+  final String label;
+  final String semanticLabel;
+  final VoidCallback onTap;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      child: AppSurface(
+        color: active ? AppColors.surfaceStrong : AppColors.surfaceAt(0.7),
+        borderColor: active ? AppColors.accent : AppColors.borderAt(0.5),
+        radius: 999,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              AppIcon(
+                icon!,
+                size: 13,
+                color: active ? AppColors.accentLight : AppColors.textMuted,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: AppTextStyles.micro.copyWith(
+                color: active ? AppColors.accentLight : AppColors.textBody,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

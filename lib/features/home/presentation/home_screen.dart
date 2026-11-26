@@ -11,6 +11,8 @@ import '../../../shared/widgets/media_card.dart';
 import '../../../shared/widgets/quote_banner.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../../shared/widgets/shelf.dart';
+import '../../player/application/player_providers.dart';
+import '../../player/domain/media_item.dart';
 
 /// Beranda: sapaan, qari favorit, rekomendasi, kurasi, dan kutipan ayat.
 ///
@@ -121,18 +123,20 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Misyari Rasyid Al-Afasi',
                       onTap: openReader,
                     ),
-                    const MediaCard(
-                      image: AssetImage('assets/images/covers/al-kahfi.png'),
+                    MediaCard(
+                      image: const AssetImage('assets/images/covers/al-kahfi.png'),
                       arabicTitle: 'الكهف',
                       pillLabel: 'Jumat',
                       title: 'Surat Al-Kahfi',
                       subtitle: 'Abdurrahman As-Sudais',
+                      onTap: () => PlayerScope.read(context).playSurah(18, qariId: '03'),
                     ),
-                    const MediaCard(
-                      image: AssetImage('assets/images/covers/yasin.png'),
+                    MediaCard(
+                      image: const AssetImage('assets/images/covers/yasin.png'),
                       arabicTitle: 'يس',
                       title: 'Surat Yasin',
                       subtitle: 'Abdullah Al-Juhany',
+                      onTap: () => PlayerScope.read(context).playSurah(36, qariId: '01'),
                     ),
                   ],
                 ),
@@ -140,8 +144,8 @@ class HomeScreen extends StatelessWidget {
                 Shelf(
                   title: 'Dibuat Untuk Kamu',
                   onSeeAll: () {},
-                  children: const [
-                    MediaCard(
+                  children: [
+                    const MediaCard(
                       image: AssetImage('assets/images/covers/mix-harian.png'),
                       badgeIcon: AppIcons.sparkle,
                       overlayLabel: 'MIX HARIAN',
@@ -149,14 +153,27 @@ class HomeScreen extends StatelessWidget {
                       subtitle: 'Al-Afasi, As-Sudais, Al-Juhany',
                     ),
                     MediaCard(
-                      image: AssetImage('assets/images/covers/dzikir-petang.png'),
+                      image: const AssetImage('assets/images/covers/dzikir-petang.png'),
                       badgeIcon: AppIcons.adhkar,
                       overlayLabel: 'VOCAL-ONLY',
                       overlayLabelColor: AppColors.skyLabel,
                       title: 'Dzikir Penenang Petang',
                       subtitle: 'Vocal-only, tanpa musik',
+                      onTap: () => PlayerScope.read(context).playItem(
+                        MediaItem(
+                          id: 'adhkar:a-petang',
+                          kind: MediaKind.adhkar,
+                          source: MediaSource.mock,
+                          title: 'Dzikir Penenang Petang',
+                          subtitle: 'Vocal-only · Contoh Audio',
+                          duration: const Duration(minutes: 3, seconds: 15),
+                          audioUri: Uri.parse('asset://assets/audio_samples/sample_01.mp3'),
+                          artwork: 'assets/images/covers/dzikir-petang.png',
+                        ),
+                        queueSource: 'Dibuat Untuk Kamu',
+                      ),
                     ),
-                    MediaCard(
+                    const MediaCard(
                       image: AssetImage('assets/images/covers/yasin.png'),
                       badgeIcon: AppIcons.tafsir,
                       overlayLabel: 'KAJIAN SINGKAT',
