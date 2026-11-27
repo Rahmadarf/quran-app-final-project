@@ -29,6 +29,7 @@ class PlayerController extends ChangeNotifier {
         _sourceResolver = sourceResolver ?? const AudioSourceResolver() {
     _phaseSub = _engine.phaseStream.listen(_onEnginePhase);
     _positionSub = _engine.positionStream.listen(_onEnginePosition);
+    _indexSub = _engine.currentIndexStream.listen(_onEngineIndex);
   }
 
   static const String _prefsKey = 'player_state_v1';
@@ -50,12 +51,15 @@ class PlayerController extends ChangeNotifier {
 
   StreamSubscription<PlayerPhase>? _phaseSub;
   StreamSubscription<PlaybackPosition>? _positionSub;
+  StreamSubscription<int?>? _indexSub;
   Timer? _bufferingTimer;
   Timer? _sleepTimer;
   Timer? _fadeTimer;
   DateTime? _lastPositionEmit;
   bool _disposed = false;
   bool _suppressAutoAdvance = false;
+  bool _usingNativePlaylist = false;
+  bool _engineLoaded = false;
 
   PlayerState get state => _state;
   ValueListenable<PlaybackPosition> get positionListenable => _positionNotifier;
@@ -116,6 +120,8 @@ class PlayerController extends ChangeNotifier {
       final queueSource = json['queueSource'] as String?;
 
       _selectedQariId = qariId;
+      _engineLoaded = false;
+      _usingNativePlaylist = false;
       await _engine.setSpeed(speed);
 
       if (rawQueue.isNotEmpty) {
@@ -161,15 +167,22 @@ class PlayerController extends ChangeNotifier {
   }
 
   /// Mengganti qari aktif. Jika ada surat yang sedang dimuat, langsung
-  /// memutar ulang surat tersebut dengan qari baru.
+  /// memutar ulang surat tersebut dengan qari baru sambil mempertahankan
+  /// nomor ayat aktif.
   Future<void> selectQari(String qariId, {String? qariName}) async {
     _selectedQariId = qariId;
-    final currentSurah = _state.current?.surahNumber;
+    final current = _state.current;
+    final currentSurah = current?.surahNumber;
     if (currentSurah != null && _state.phase != PlayerPhase.idle) {
+      final keepAyah =
+          current?.kind == MediaKind.ayah ? current?.ayahNumber : null;
+      final preferPerAyah = current?.kind != MediaKind.surah;
       await playSurah(
         currentSurah,
         qariId: qariId,
         qariName: qariName,
+        startAyah: keepAyah,
+        preferPerAyah: preferPerAyah,
       );
       return;
     }
@@ -179,18 +192,46 @@ class PlayerController extends ChangeNotifier {
 
   /// Memutar surat dari API equran.id berdasarkan [surahNumber] dan [qariId]
   /// (docs/02 §4.1, 05 §2).
+  ///
+  /// Secara bawaan ([preferPerAyah] = `true`), memuat daftar putar native per
+  /// ayat (`ayat[i].audio`) ke `just_audio` agar sinkronisasi teks & suara 100%
+  /// akurat dengan pre-buffering halus. Fallback otomatis ke `audioFull` bila
+  /// audio per ayat belum tersedia atau [preferPerAyah] = `false`.
   Future<void> playSurah(
     int surahNumber, {
     String? qariId,
     String? qariName,
+    int? startAyah,
+    bool preferPerAyah = true,
     String? queueSource,
   }) async {
     final targetQari = qariId ?? _selectedQariId;
     _selectedQariId = targetQari;
 
-    // Jika item yang sama sedang aktif, cukup lanjutkan jika dijeda.
-    final expectedId = 'surah:$surahNumber:$targetQari';
-    if (_state.current?.id == expectedId &&
+    // Jika daftar putar per ayat surat & qari yang sama sudah aktif:
+    final cur = _state.current;
+    if (preferPerAyah &&
+        _usingNativePlaylist &&
+        _engineLoaded &&
+        cur != null &&
+        cur.kind == MediaKind.ayah &&
+        cur.surahNumber == surahNumber &&
+        cur.qariId == targetQari &&
+        _state.phase != PlayerPhase.error &&
+        _state.phase != PlayerPhase.idle) {
+      if (startAyah != null && startAyah != cur.ayahNumber) {
+        await jumpToAyah(startAyah);
+      } else if (!_state.isPlaying) {
+        await resume();
+      }
+      return;
+    }
+
+    // Jika audio surat penuh yang sama sedang aktif (Mode B):
+    final expectedSurahId = 'surah:$surahNumber:$targetQari';
+    if (!preferPerAyah &&
+        _engineLoaded &&
+        cur?.id == expectedSurahId &&
         _state.phase != PlayerPhase.error &&
         _state.phase != PlayerPhase.idle) {
       if (!_state.isPlaying) {
@@ -206,8 +247,29 @@ class PlayerController extends ChangeNotifier {
     _safeNotify();
 
     try {
-      final surahs = await loadSurahs();
       final detail = await _quranRepository.getSurahDetail(surahNumber);
+      final displayQari = qariName ?? _qariDisplayName(targetQari);
+
+      // Mode A (bawaan): native playlist per ayat untuk sinkronisasi 100% akurat.
+      if (preferPerAyah && detail.ayat.isNotEmpty) {
+        final ayahItems = _buildAyahItems(detail, targetQari, displayQari);
+        if (ayahItems.isNotEmpty) {
+          final targetAyah = (startAyah ?? 1).clamp(1, detail.ayahCount);
+          final foundIdx =
+              ayahItems.indexWhere((e) => e.ayahNumber == targetAyah);
+          final startIdx =
+              foundIdx >= 0 ? foundIdx : (targetAyah - 1).clamp(0, ayahItems.length - 1);
+          await playAyahPlaylist(
+            ayahItems,
+            startIndex: startIdx,
+            queueSource: queueSource ?? 'Surat ${detail.latinName} · Per Ayat',
+          );
+          return;
+        }
+      }
+
+      // Mode B (fallback / eksplisit): audio surat penuh.
+      final surahs = await loadSurahs();
       final uri = detail.fullAudioForQari(targetQari);
       if (uri == null) {
         throw const AppFailure(
@@ -216,7 +278,6 @@ class PlayerController extends ChangeNotifier {
         );
       }
 
-      final displayQari = qariName ?? _qariDisplayName(targetQari);
       final item = _surahToMediaItem(detail, targetQari, displayQari, uri);
 
       // Bentuk antrean surat dari surat ini hingga surat 114 (docs/05 §5).
@@ -234,8 +295,7 @@ class PlayerController extends ChangeNotifier {
         );
       }
 
-      final activeInQueue =
-          queueItems.indexWhere((e) => e.id == item.id);
+      final activeInQueue = queueItems.indexWhere((e) => e.id == item.id);
       await playItem(
         item,
         queue: queueItems.isEmpty ? [item] : queueItems,
@@ -252,6 +312,40 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
+  /// Memuat rangkaian ayat satu surat ke daftar putar native [AudioEngine].
+  Future<void> playAyahPlaylist(
+    List<MediaItem> items, {
+    int startIndex = 0,
+    String? queueSource,
+  }) async {
+    if (items.isEmpty) return;
+    final idx = startIndex.clamp(0, items.length - 1);
+    final truncated = _queue.setItems(
+      items,
+      startIndex: idx,
+      // Urutan ayat Al-Qur'an tidak diacak.
+      shuffle: false,
+      source: queueSource,
+    );
+    if (truncated) {
+      _statusNotice =
+          'Antrean dibatasi maksimal ${AppConstants.maxQueueLength} item.';
+    }
+    await _loadNativePlaylist();
+  }
+
+  /// Melompat instan ke [ayahNumber] (1-based) dalam surat yang sedang diputar
+  /// pada mode native playlist tanpa memuat ulang seluruh daftar putar.
+  Future<bool> jumpToAyah(int ayahNumber) async {
+    if (!_usingNativePlaylist || _state.current?.kind != MediaKind.ayah) {
+      return false;
+    }
+    final idx = _queue.items.indexWhere((e) => e.ayahNumber == ayahNumber);
+    if (idx < 0) return false;
+    await jumpToQueueIndex(idx);
+    return true;
+  }
+
   /// Memutar satu [MediaItem] beserta [queue] opsional (docs/05 §4).
   Future<void> playItem(
     MediaItem item, {
@@ -259,8 +353,21 @@ class PlayerController extends ChangeNotifier {
     int startIndex = 0,
     String? queueSource,
   }) async {
+    // Bila seluruh antrean adalah ayat (`MediaKind.ayah`), pakai native playlist.
+    if (queue != null &&
+        queue.isNotEmpty &&
+        queue.every((e) => e.kind == MediaKind.ayah)) {
+      await playAyahPlaylist(
+        queue,
+        startIndex: startIndex,
+        queueSource: queueSource,
+      );
+      return;
+    }
+
     // Mengetuk item yang sama yang sedang aktif tidak mengulang dari awal.
-    if (_state.current?.id == item.id &&
+    if (_engineLoaded &&
+        _state.current?.id == item.id &&
         _state.phase != PlayerPhase.idle &&
         _state.phase != PlayerPhase.error &&
         queue == null) {
@@ -298,6 +405,81 @@ class PlayerController extends ChangeNotifier {
     await _loadAndPlayCurrent();
   }
 
+  Future<void> _loadNativePlaylist({bool autoplay = true}) async {
+    final items = _queue.items;
+    final item = _queue.current;
+    if (items.isEmpty || item == null) {
+      await stop();
+      return;
+    }
+
+    _bufferingTimer?.cancel();
+    _suppressAutoAdvance = true;
+    _usingNativePlaylist = true;
+    _engineLoaded = false;
+    _state = _state.copyWith(
+      phase: PlayerPhase.loading,
+      current: item,
+      queue: items,
+      currentIndex: _queue.currentIndex,
+      shuffle: false,
+      queueSource: _queue.source,
+      clearError: true,
+    );
+    _positionNotifier.value = PlaybackPosition(duration: item.duration);
+    _safeNotify();
+
+    try {
+      final entries = <PlaylistEntry>[];
+      for (final entryItem in items) {
+        final resolved = await _sourceResolver.resolve(entryItem);
+        entries.add(
+          PlaylistEntry(
+            item: entryItem,
+            resolvedUri: resolved.uri,
+            isAsset: resolved.isAsset,
+          ),
+        );
+      }
+
+      final loadedDuration = await _engine.loadPlaylist(
+        entries,
+        initialIndex: _queue.currentIndex,
+      );
+
+      if (loadedDuration != null && loadedDuration != item.duration) {
+        final updated = item.copyWith(duration: loadedDuration);
+        _state = _state.copyWith(current: updated);
+        _positionNotifier.value =
+            _positionNotifier.value.copyWith(duration: loadedDuration);
+      }
+
+      await _engine.setSpeed(_state.speed);
+      await _engine.setVolume(1.0);
+      await _engine.setLoopMode(_state.repeat);
+      _engineLoaded = true;
+      _suppressAutoAdvance = false;
+
+      if (autoplay) {
+        await _engine.play();
+      } else {
+        _state = _state.copyWith(phase: PlayerPhase.paused);
+        _safeNotify();
+      }
+      unawaited(_persist());
+    } catch (e) {
+      _suppressAutoAdvance = false;
+      _usingNativePlaylist = false;
+      _engineLoaded = false;
+      final failure = mapToAppFailure(e);
+      _state = _state.copyWith(
+        phase: PlayerPhase.error,
+        error: PlayerError(failure: failure, canSkip: _queue.length > 1),
+      );
+      _safeNotify();
+    }
+  }
+
   Future<void> _loadAndPlayCurrent({bool autoplay = true}) async {
     final item = _queue.current;
     if (item == null) {
@@ -307,6 +489,8 @@ class PlayerController extends ChangeNotifier {
 
     _bufferingTimer?.cancel();
     _suppressAutoAdvance = true;
+    _usingNativePlaylist = false;
+    _engineLoaded = false;
     _state = _state.copyWith(
       phase: PlayerPhase.loading,
       current: item,
@@ -320,6 +504,7 @@ class PlayerController extends ChangeNotifier {
 
     try {
       final resolved = await _sourceResolver.resolve(item);
+      await _engine.setLoopMode(RepeatMode.off);
       final loadedDuration = await _engine.load(
         item,
         resolved.uri,
@@ -335,6 +520,7 @@ class PlayerController extends ChangeNotifier {
 
       await _engine.setSpeed(_state.speed);
       await _engine.setVolume(1.0);
+      _engineLoaded = true;
       _suppressAutoAdvance = false;
 
       if (autoplay) {
@@ -346,6 +532,7 @@ class PlayerController extends ChangeNotifier {
       unawaited(_persist());
     } catch (e) {
       _suppressAutoAdvance = false;
+      _engineLoaded = false;
       final failure = mapToAppFailure(e);
       _state = _state.copyWith(
         phase: PlayerPhase.error,
@@ -358,9 +545,19 @@ class PlayerController extends ChangeNotifier {
   Future<void> play() => resume();
 
   Future<void> resume() async {
-    if (_state.current == null) return;
+    final current = _state.current;
+    if (current == null) return;
     if (_state.phase == PlayerPhase.error) {
       await retry();
+      return;
+    }
+    if (!_engineLoaded) {
+      if (current.kind == MediaKind.ayah &&
+          _queue.items.every((e) => e.kind == MediaKind.ayah)) {
+        await _loadNativePlaylist(autoplay: true);
+      } else {
+        await _loadAndPlayCurrent(autoplay: true);
+      }
       return;
     }
     if (_state.phase == PlayerPhase.paused ||
@@ -395,7 +592,12 @@ class PlayerController extends ChangeNotifier {
 
   Future<void> retry() async {
     if (_state.current == null) return;
-    await _loadAndPlayCurrent();
+    if (_state.current!.kind == MediaKind.ayah &&
+        _queue.items.every((e) => e.kind == MediaKind.ayah)) {
+      await _loadNativePlaylist();
+    } else {
+      await _loadAndPlayCurrent();
+    }
   }
 
   Future<void> seek(double fraction) async {
@@ -431,9 +633,22 @@ class PlayerController extends ChangeNotifier {
     }
     final nextIdx = _queue.nextIndex(_state.repeat);
     if (nextIdx == null) {
+      // Di akhir surat pada mode per ayat, otomatis lanjut ke surat berikutnya.
+      final curSurah = _state.current?.surahNumber;
+      if (_usingNativePlaylist &&
+          _state.current?.kind == MediaKind.ayah &&
+          curSurah != null &&
+          curSurah < 114) {
+        await playSurah(curSurah + 1, startAyah: 1, qariId: _selectedQariId);
+        return;
+      }
       await pause();
       _state = _state.copyWith(phase: PlayerPhase.completed);
       _safeNotify();
+      return;
+    }
+    if (_usingNativePlaylist && _engineLoaded) {
+      await jumpToQueueIndex(nextIdx);
       return;
     }
     _queue.jumpTo(nextIdx);
@@ -453,6 +668,10 @@ class PlayerController extends ChangeNotifier {
       await seekTo(Duration.zero);
       return;
     }
+    if (_usingNativePlaylist && _engineLoaded) {
+      await jumpToQueueIndex(prevIdx);
+      return;
+    }
     _queue.jumpTo(prevIdx);
     await _loadAndPlayCurrent();
   }
@@ -468,6 +687,12 @@ class PlayerController extends ChangeNotifier {
   void toggleShuffle() => setShuffle(!_state.shuffle);
 
   void setShuffle(bool enabled) {
+    // Urutan ayat Al-Qur'an tidak diacak agar bacaan tetap sesuai mushaf.
+    if (_usingNativePlaylist && _state.current?.kind == MediaKind.ayah) {
+      _statusNotice = 'Urutan ayat Al-Qur\'an tidak dapat diacak.';
+      _safeNotify();
+      return;
+    }
     _queue.setShuffle(enabled);
     _state = _state.copyWith(
       shuffle: enabled,
@@ -488,6 +713,9 @@ class PlayerController extends ChangeNotifier {
 
   void setRepeat(RepeatMode mode) {
     _state = _state.copyWith(repeat: mode);
+    if (_usingNativePlaylist) {
+      unawaited(_engine.setLoopMode(mode));
+    }
     _safeNotify();
     unawaited(_persist());
   }
@@ -578,7 +806,9 @@ class PlayerController extends ChangeNotifier {
       queue: _queue.items,
       currentIndex: _queue.currentIndex,
     );
-    if (removedWasCurrent) {
+    if (_usingNativePlaylist) {
+      await _loadNativePlaylist(autoplay: _state.isPlaying);
+    } else if (removedWasCurrent) {
       await _loadAndPlayCurrent(autoplay: _state.isPlaying);
     } else {
       _safeNotify();
@@ -592,6 +822,10 @@ class PlayerController extends ChangeNotifier {
       queue: _queue.items,
       currentIndex: _queue.currentIndex,
     );
+    if (_usingNativePlaylist) {
+      unawaited(_loadNativePlaylist(autoplay: _state.isPlaying));
+      return;
+    }
     _safeNotify();
     unawaited(_persist());
   }
@@ -599,6 +833,22 @@ class PlayerController extends ChangeNotifier {
   Future<void> jumpToQueueIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
     _queue.jumpTo(index);
+    if (_usingNativePlaylist && _engineLoaded) {
+      final target = _queue.current;
+      _state = _state.copyWith(
+        current: target,
+        currentIndex: _queue.currentIndex,
+        clearError: true,
+      );
+      _positionNotifier.value = PlaybackPosition(duration: target?.duration);
+      _safeNotify();
+      await _engine.seekToIndex(index);
+      if (!_state.isPlaying) {
+        await _engine.play();
+      }
+      unawaited(_persist());
+      return;
+    }
     await _loadAndPlayCurrent();
   }
 
@@ -621,6 +871,8 @@ class PlayerController extends ChangeNotifier {
     _suppressAutoAdvance = true;
     await _engine.stop();
     _suppressAutoAdvance = false;
+    _usingNativePlaylist = false;
+    _engineLoaded = false;
     _queue.clear();
     _state = _state.copyWith(
       phase: PlayerPhase.idle,
@@ -633,6 +885,37 @@ class PlayerController extends ChangeNotifier {
       clearQueueSource: true,
     );
     _positionNotifier.value = const PlaybackPosition();
+    _safeNotify();
+    unawaited(_persist());
+  }
+
+  void _onEngineIndex(int? index) {
+    if (_disposed || !_usingNativePlaylist || _suppressAutoAdvance) return;
+    if (index == null || index < 0 || index >= _queue.length) return;
+
+    // Jika timer tidur diatur "akhir item saat ini", jeda saat ganti ayat.
+    if (_state.sleepAtEndOfItem && index != _queue.currentIndex) {
+      unawaited(pause());
+      _state = _state.copyWith(
+        phase: PlayerPhase.paused,
+        sleepAtEndOfItem: false,
+      );
+      _safeNotify();
+      return;
+    }
+
+    if (index == _queue.currentIndex &&
+        _state.current?.id == _queue.current?.id) {
+      return;
+    }
+
+    _queue.jumpTo(index);
+    final nextItem = _queue.current;
+    _state = _state.copyWith(
+      current: nextItem,
+      currentIndex: _queue.currentIndex,
+    );
+    _positionNotifier.value = PlaybackPosition(duration: nextItem?.duration);
     _safeNotify();
     unawaited(_persist());
   }
@@ -667,15 +950,29 @@ class PlayerController extends ChangeNotifier {
         _safeNotify();
         return;
       }
-      if (_state.repeat == RepeatMode.one) {
-        unawaited(seekTo(Duration.zero).then((_) => _engine.play()));
-        return;
-      }
-      final nextIdx = _queue.nextIndex(_state.repeat);
-      if (nextIdx != null) {
-        _queue.jumpTo(nextIdx);
-        unawaited(_loadAndPlayCurrent());
-        return;
+
+      if (_usingNativePlaylist) {
+        // Seluruh ayat dalam surat selesai diputar (LoopMode.off).
+        final curSurah = _state.current?.surahNumber;
+        if (_state.current?.kind == MediaKind.ayah &&
+            curSurah != null &&
+            curSurah < 114) {
+          unawaited(
+            playSurah(curSurah + 1, startAyah: 1, qariId: _selectedQariId),
+          );
+          return;
+        }
+      } else {
+        if (_state.repeat == RepeatMode.one) {
+          unawaited(seekTo(Duration.zero).then((_) => _engine.play()));
+          return;
+        }
+        final nextIdx = _queue.nextIndex(_state.repeat);
+        if (nextIdx != null) {
+          _queue.jumpTo(nextIdx);
+          unawaited(_loadAndPlayCurrent());
+          return;
+        }
       }
     }
 
@@ -716,6 +1013,39 @@ class PlayerController extends ChangeNotifier {
     } catch (_) {
       // Abaikan bila penyimpanan tidak tersedia (mis. test).
     }
+  }
+
+  List<MediaItem> _buildAyahItems(
+    Surah surah,
+    String qariId,
+    String qariName,
+  ) {
+    final artwork = _artworkForSurah(surah.number);
+    final items = <MediaItem>[];
+    for (final ayah in surah.ayat) {
+      final uri = ayah.audioForQari(qariId);
+      if (uri == null) continue;
+      items.add(
+        MediaItem(
+          id: 'ayah:${surah.number}:${ayah.number}:$qariId',
+          kind: MediaKind.ayah,
+          source: MediaSource.api,
+          title: 'Surat ${surah.latinName} · Ayat ${ayah.number}',
+          subtitle: qariName,
+          audioUri: uri,
+          artwork: artwork,
+          meta: {
+            'surahNumber': surah.number,
+            'surahLatinName': surah.latinName,
+            'surahArabicName': surah.arabicName,
+            'ayahNumber': ayah.number,
+            'ayahCount': surah.ayahCount,
+            'qariId': qariId,
+          },
+        ),
+      );
+    }
+    return items;
   }
 
   String _qariDisplayName(String qariId) {
@@ -779,6 +1109,7 @@ class PlayerController extends ChangeNotifier {
     _fadeTimer?.cancel();
     _phaseSub?.cancel();
     _positionSub?.cancel();
+    _indexSub?.cancel();
     _positionNotifier.dispose();
     unawaited(_engine.dispose());
     super.dispose();

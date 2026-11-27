@@ -238,6 +238,20 @@ class ReaderController extends ChangeNotifier {
     final displayQari = qariName ?? _qariName(targetQari);
 
     if (_settings.syncMode == SyncMode.perAyah && surah.ayat.isNotEmpty) {
+      // Jika daftar putar per ayat untuk surat & qari ini sudah aktif, cukup
+      // lompat instan ke ayat tujuan tanpa memuat ulang playlist.
+      final cur = player.state.current;
+      if (cur != null &&
+          cur.kind == MediaKind.ayah &&
+          cur.surahNumber == surah.number &&
+          cur.qariId == targetQari) {
+        final jumped = await player.jumpToAyah(ayahNumber);
+        if (jumped) {
+          unawaited(saveLastRead(surah.number, surah.latinName, ayahNumber));
+          return;
+        }
+      }
+
       final items = <MediaItem>[];
       for (final ayah in surah.ayat) {
         final uri = ayah.audioForQari(targetQari);
@@ -247,12 +261,13 @@ class ReaderController extends ChangeNotifier {
             id: 'ayah:${surah.number}:${ayah.number}:$targetQari',
             kind: MediaKind.ayah,
             source: MediaSource.api,
-            title: '${surah.latinName} : Ayat ${ayah.number}',
+            title: 'Surat ${surah.latinName} · Ayat ${ayah.number}',
             subtitle: displayQari,
             audioUri: uri,
             meta: {
               'surahNumber': surah.number,
               'surahLatinName': surah.latinName,
+              'surahArabicName': surah.arabicName,
               'ayahNumber': ayah.number,
               'ayahCount': surah.ayahCount,
               'qariId': targetQari,
@@ -262,12 +277,11 @@ class ReaderController extends ChangeNotifier {
       }
 
       if (items.isNotEmpty) {
-        final startIdx = items
-            .indexWhere((e) => e.ayahNumber == ayahNumber)
-            .clamp(0, items.length - 1);
-        await player.playItem(
-          items[startIdx],
-          queue: items,
+        final foundIdx = items.indexWhere((e) => e.ayahNumber == ayahNumber);
+        final startIdx =
+            foundIdx >= 0 ? foundIdx : (ayahNumber - 1).clamp(0, items.length - 1);
+        await player.playAyahPlaylist(
+          items,
           startIndex: startIdx,
           queueSource: '${surah.latinName} · Per Ayat',
         );
@@ -281,6 +295,7 @@ class ReaderController extends ChangeNotifier {
       surah.number,
       qariId: targetQari,
       qariName: displayQari,
+      preferPerAyah: false,
       queueSource: '${surah.latinName} · Surat Penuh',
     );
     final total = player.position.duration;
