@@ -54,7 +54,7 @@ class QariFooterCard extends StatelessWidget {
               ),
               child: ClipOval(
                 child: Image(
-                  image: image,
+                  image: ResizeImage.resizeIfNeeded(132, null, image),
                   width: 44,
                   height: 44,
                   fit: BoxFit.cover,

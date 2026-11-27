@@ -43,7 +43,6 @@ class MiniPlayer extends StatelessWidget {
         borderColor: AppColors.border,
         blur: 24,
         radius: 12,
-        height: 54,
         shadows: const [
           BoxShadow(
             color: Color(0x99001233), // rgba(0,18,51,0.6)
@@ -51,11 +50,14 @@ class MiniPlayer extends StatelessWidget {
             offset: Offset(0, 8),
           ),
         ],
-        child: Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 54),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: Row(
                   children: [
                     leading,
@@ -64,6 +66,7 @@ class MiniPlayer extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             title,
@@ -87,9 +90,9 @@ class MiniPlayer extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
-            _ProgressLine(progress: progress),
-          ],
+              RepaintBoundary(child: _ProgressLine(progress: progress)),
+            ],
+          ),
         ),
       ),
     );
@@ -151,7 +154,7 @@ class MiniPlayerLeading extends StatelessWidget {
       borderColor: image != null ? AppColors.accent : AppColors.borderAt(0.6),
       child: image != null
           ? Image(
-              image: image!,
+              image: ResizeImage.resizeIfNeeded(108, null, image!),
               fit: BoxFit.cover,
               alignment: imageAlignment,
               excludeFromSemantics: true,

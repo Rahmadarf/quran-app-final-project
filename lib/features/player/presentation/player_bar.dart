@@ -33,7 +33,7 @@ class PlayerBar extends StatelessWidget {
     final state = player.state;
     final current = state.current;
     final title = current?.title ?? 'Surat Ar-Rahman';
-    final subtitle = current?.subtitle ?? 'Misyari Rasyid Al-Afasi';
+    final subtitle = current?.subtitle ?? player.selectedQariName;
 
     return AppSurface(
       color: AppColors.surfaceAt(0.96),
@@ -57,8 +57,13 @@ class PlayerBar extends StatelessWidget {
                     color: AppColors.background,
                     borderColor: AppColors.accent,
                     child: Image(
-                      image: AssetImage(
-                        current?.artwork ?? 'assets/images/covers/ar-rahman.png',
+                      image: ResizeImage.resizeIfNeeded(
+                        144,
+                        null,
+                        AssetImage(
+                          current?.artwork ??
+                              'assets/images/covers/ar-rahman.png',
+                        ),
                       ),
                       fit: BoxFit.cover,
                       excludeFromSemantics: true,

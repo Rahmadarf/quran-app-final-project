@@ -13,7 +13,11 @@ import '../../../shared/widgets/app_top_bar.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../../shared/widgets/pressable.dart';
+import '../../quran/application/quran_providers.dart';
+import '../../quran/domain/surah.dart';
+import '../../reader/application/sync_engine.dart';
 import '../application/player_controller.dart';
+import '../domain/media_item.dart';
 import '../domain/player_state.dart';
 import 'ayah_lyrics_view.dart';
 import 'ayah_picker_sheet.dart';
@@ -89,14 +93,49 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
   SurahOption _surah = _fallbackSurahs[4];
   int _ayah = 13;
 
+  final SyncEngine _syncEngine = const SyncEngine();
+  Surah? _loadedSurah;
+  int? _fetchingSurahNo;
+
+  void _ensureSurahLoaded(BuildContext context, int surahNumber) {
+    if (surahNumber < 1 || surahNumber > 114) return;
+    if (_loadedSurah?.number == surahNumber || _fetchingSurahNo == surahNumber) {
+      return;
+    }
+    _fetchingSurahNo = surahNumber;
+    final repo = ReaderScope.read(context).repository;
+    unawaited(
+      repo.getSurahDetail(surahNumber).then((surah) {
+        if (!mounted) return;
+        setState(() {
+          _loadedSurah = surah;
+          _fetchingSurahNo = null;
+        });
+      }).catchError((_) {
+        if (mounted && _fetchingSurahNo == surahNumber) {
+          _fetchingSurahNo = null;
+        }
+      }),
+    );
+  }
+
+  QariOption _activeQari(PlayerController player) {
+    return _qaris.firstWhere(
+      (q) => q.id == player.selectedQariId,
+      orElse: () => _qari,
+    );
+  }
+
   Future<void> _pickQari(PlayerController player) async {
+    final currentQari = _activeQari(player);
     final result =
-        await showQariPicker(context, options: _qaris, selected: _qari);
+        await showQariPicker(context, options: _qaris, selected: currentQari);
     if (result != null && mounted) {
       setState(() => _qari = result);
+      final targetSurah = player.state.current?.surahNumber ?? _surah.number;
       unawaited(
         player.playSurah(
-          _surah.number,
+          targetSurah,
           qariId: result.id,
           qariName: result.name,
         ),
@@ -120,31 +159,71 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
       unawaited(player.loadSurahs().then<void>((_) {}, onError: (_) {}));
     }
 
-    final result =
-        await showSurahPicker(context, options: options, selected: _surah);
-    if (result != null && result.number != _surah.number && mounted) {
+    final currentSurahNo = player.state.current?.surahNumber ?? _surah.number;
+    final selectedSurah = options.firstWhere(
+      (s) => s.number == currentSurahNo,
+      orElse: () => _surah,
+    );
+    final result = await showSurahPicker(
+      context,
+      options: options,
+      selected: selectedSurah,
+    );
+    if (result != null && result.number != currentSurahNo && mounted) {
       setState(() {
         _surah = result;
         _ayah = 1;
       });
+      final activeQari = _activeQari(player);
       unawaited(
         player.playSurah(
           result.number,
-          qariId: _qari.id,
-          qariName: _qari.name,
+          qariId: activeQari.id,
+          qariName: activeQari.name,
         ),
       );
     }
   }
 
-  Future<void> _pickAyah() async {
+  int _resolvedAyahNumber(MediaItem? current, PlaybackPosition pos, int activeAyahCount) {
+    final surah = _loadedSurah;
+    if (surah != null &&
+        current != null &&
+        surah.number == current.surahNumber &&
+        surah.ayat.isNotEmpty) {
+      final sync = _syncEngine.resolve(
+        surah: surah,
+        current: current,
+        pos: pos,
+      );
+      if (sync.activeAyah != null) {
+        return sync.activeAyah!.clamp(1, activeAyahCount);
+      }
+    }
+    return _ayah.clamp(1, activeAyahCount);
+  }
+
+  Future<void> _pickAyah(
+    PlayerController player,
+    String surahName,
+    int ayahCount,
+    int currentAyah,
+  ) async {
     final result = await showAyahPicker(
       context,
-      surahName: _surah.name,
-      ayahCount: _surah.ayahCount,
-      current: _ayah,
+      surahName: surahName,
+      ayahCount: ayahCount,
+      current: currentAyah.clamp(1, ayahCount),
     );
-    if (result != null && mounted) setState(() => _ayah = result);
+    if (result != null && mounted) {
+      setState(() => _ayah = result);
+      final surah = _loadedSurah;
+      final total = player.position.duration ?? player.state.current?.duration;
+      if (surah != null && total != null && total.inMilliseconds > 0) {
+        final targetPos = _syncEngine.startTimeForAyah(surah, result, total);
+        unawaited(player.seekTo(targetPos));
+      }
+    }
   }
 
   @override
@@ -152,14 +231,21 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
     final player = PlayerScope.of(context);
     final state = player.state;
     final current = state.current;
+    final activeQari = _activeQari(player);
 
     final activeSurahNumber = current?.surahNumber ?? _surah.number;
     final activeSurahName =
         (current?.meta['surahLatinName'] as String?) ?? _surah.name;
     final activeAyahCount = current?.ayahCount ?? _surah.ayahCount;
-    final activeQariName = current?.subtitle ?? _qari.name;
+    final activeQariName = current?.subtitle ?? activeQari.name;
     final displayTitle = current?.title ?? 'Surat ${_surah.name}';
     final isSurah = current == null || current.kind.hasReader;
+
+    if (isSurah) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _ensureSurahLoaded(context, activeSurahNumber);
+      });
+    }
 
     return ColoredBox(
       color: AppColors.background,
@@ -258,8 +344,9 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                         height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 13),
                         style: PillButtonStyle.highlight,
-                        onTap: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.reader),
+                        onTap: () => Navigator.of(context).pushNamed(
+                          AppRoutes.readerFor(activeSurahNumber),
+                        ),
                       ),
                     ],
                   ],
@@ -304,16 +391,59 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                     ),
                   ),
                 ),
-              const Expanded(
+              Expanded(
                 child: Center(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: AyahLyricsView(
-                      previousArabic: 'الرَّحْمَٰنُ (١) عَلَّمَ الْقُرْآنَ (٢)',
-                      activeArabic: 'فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ',
-                      translation:
-                          'Maka nikmat Tuhanmu yang manakah yang kamu dustakan?',
-                      nextArabic: 'خَلَقَ الْإِنسَانَ (٣) عَلَّمَهُ الْبَيَانَ (٤)',
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: PlaybackPositionBuilder(
+                      positionListenable: player.positionListenable,
+                      builder: (context, pos) {
+                        final surah = _loadedSurah?.number == activeSurahNumber
+                            ? _loadedSurah
+                            : null;
+                        if (surah != null && surah.ayat.isNotEmpty) {
+                          final sync = current != null
+                              ? _syncEngine.resolve(
+                                  surah: surah,
+                                  current: current,
+                                  pos: pos,
+                                )
+                              : const SyncResult();
+                          final ayahNo = (sync.activeAyah ?? _ayah)
+                              .clamp(1, surah.ayat.length);
+                          final idx = ayahNo - 1;
+                          final active = surah.ayat[idx];
+                          final prev = idx > 0 ? surah.ayat[idx - 1] : null;
+                          final next = idx + 1 < surah.ayat.length
+                              ? surah.ayat[idx + 1]
+                              : null;
+                          return AyahLyricsView(
+                            previousArabic: prev != null
+                                ? '${prev.arabic} (${prev.number})'
+                                : null,
+                            activeArabic: '${active.arabic} (${active.number})',
+                            translation: active.translation,
+                            nextArabic: next != null
+                                ? '${next.arabic} (${next.number})'
+                                : null,
+                          );
+                        }
+                        if (activeSurahNumber == 55) {
+                          return const AyahLyricsView(
+                            previousArabic: 'الرَّحْمَٰنُ (١) عَلَّمَ الْقُرْآنَ (٢)',
+                            activeArabic: 'فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ',
+                            translation:
+                                'Maka nikmat Tuhanmu yang manakah yang kamu dustakan?',
+                            nextArabic: 'خَلَقَ الْإِنسَانَ (٣) عَلَّمَهُ الْبَيَانَ (٤)',
+                          );
+                        }
+                        return AyahLyricsView(
+                          activeArabic: (current?.meta['surahArabicName']
+                                  as String?) ??
+                              activeSurahName,
+                          translation: 'Memuat ayat Surat $activeSurahName...',
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -403,7 +533,7 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                               remaining:
                                   formatRemaining(pos.position, pos.duration),
                               centerLabel: isSurah
-                                  ? 'Ayat ${_ayah.clamp(1, activeAyahCount)} dari $activeAyahCount'
+                                  ? 'Ayat ${_resolvedAyahNumber(current, pos, activeAyahCount)} dari $activeAyahCount'
                                   : null,
                             ),
                           ],
@@ -451,25 +581,46 @@ class _FullscreenPlayerScreenState extends State<FullscreenPlayerScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    PlaybackSelectorCard(
-                      qariName: activeQariName,
-                      qariAvatar: _qari.photo == null
-                          ? null
-                          : ClipOval(
-                              child: Image(
-                                image: _qari.photo!,
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                                alignment: _qari.photoAlignment,
-                                excludeFromSemantics: true,
-                              ),
-                            ),
-                      surahName: activeSurahName,
-                      ayahNumber: _ayah.clamp(1, activeAyahCount),
-                      onQariTap: () => _pickQari(player),
-                      onSurahTap: () => _pickSurah(player),
-                      onAyahTap: activeSurahNumber > 0 ? _pickAyah : () {},
+                    PlaybackPositionBuilder(
+                      positionListenable: player.positionListenable,
+                      builder: (context, pos) {
+                        final resolvedAyah = _resolvedAyahNumber(
+                          current,
+                          pos,
+                          activeAyahCount,
+                        );
+                        return PlaybackSelectorCard(
+                          qariName: activeQariName,
+                          qariAvatar: activeQari.photo == null
+                              ? null
+                              : ClipOval(
+                                  child: Image(
+                                    image: ResizeImage.resizeIfNeeded(
+                                      132,
+                                      null,
+                                      activeQari.photo!,
+                                    ),
+                                    width: 44,
+                                    height: 44,
+                                    fit: BoxFit.cover,
+                                    alignment: activeQari.photoAlignment,
+                                    excludeFromSemantics: true,
+                                  ),
+                                ),
+                          surahName: activeSurahName,
+                          ayahNumber: resolvedAyah,
+                          onQariTap: () => _pickQari(player),
+                          onSurahTap: () => _pickSurah(player),
+                          onAyahTap: activeSurahNumber > 0
+                              ? () => _pickAyah(
+                                    player,
+                                    activeSurahName,
+                                    activeAyahCount,
+                                    resolvedAyah,
+                                  )
+                              : () {},
+                        );
+                      },
                     ),
                   ],
                 ),

@@ -6,8 +6,8 @@ import 'package:flutter/widgets.dart';
 import '../features/player/application/player_controller.dart';
 import '../features/quran/application/quran_providers.dart';
 import '../features/reader/application/reader_controller.dart';
-import 'app_colors.dart';
 import 'router.dart';
+import 'theme.dart';
 
 /// Widget akar. Memakai `WidgetsApp` (bukan `MaterialApp`) karena seluruh
 /// komponen UI dibuat kustom dan tidak bergantung pada Material.
@@ -21,6 +21,7 @@ class QuranApp extends StatefulWidget {
 class _QuranAppState extends State<QuranApp> {
   final PlayerController _player = PlayerController();
   final ReaderController _reader = ReaderController();
+  final AppThemeController _theme = AppThemeController();
 
   @override
   void initState() {
@@ -33,31 +34,40 @@ class _QuranAppState extends State<QuranApp> {
   void dispose() {
     _player.dispose();
     _reader.dispose();
+    _theme.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return PlayerScope(
-      controller: _player,
-      child: ReaderScope(
-        controller: _reader,
-        child: WidgetsApp(
-        title: 'Quran Audio',
-        color: AppColors.background,
-        debugShowCheckedModeBanner: false,
-        initialRoute: AppRoutes.home,
-        onGenerateRoute: onGenerateRoute,
-        pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
-          settings: settings,
-          pageBuilder: (context, _, _) => builder(context),
-        ),
-        // Mouse dan stylus ikut bisa menggulir di web/desktop.
-        builder: (context, child) => ScrollConfiguration(
-          behavior: const _AppScrollBehavior(),
-          child: child ?? const SizedBox.shrink(),
-        ),
-      ),
+    return AppThemeScope(
+      controller: _theme,
+      child: Builder(
+        builder: (context) {
+          final palette = AppThemeScope.paletteOf(context);
+          return PlayerScope(
+            controller: _player,
+            child: ReaderScope(
+              controller: _reader,
+              child: WidgetsApp(
+                title: 'Quran Audio',
+                color: palette.background,
+                debugShowCheckedModeBanner: false,
+                initialRoute: AppRoutes.home,
+                onGenerateRoute: onGenerateRoute,
+                pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
+                  settings: settings,
+                  pageBuilder: (context, _, _) => builder(context),
+                ),
+                // Mouse dan stylus ikut bisa menggulir di web/desktop.
+                builder: (context, child) => ScrollConfiguration(
+                  behavior: const _AppScrollBehavior(),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

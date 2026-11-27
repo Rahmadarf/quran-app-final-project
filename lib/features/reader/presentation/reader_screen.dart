@@ -6,6 +6,8 @@ import 'package:flutter/widgets.dart';
 import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_icon.dart';
@@ -15,6 +17,7 @@ import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../../shared/widgets/skeleton.dart';
+import '../../../shared/widgets/status_banner.dart';
 import '../../player/application/player_controller.dart';
 import '../../player/presentation/mini_player.dart';
 import '../../player/presentation/qari_picker_sheet.dart';
@@ -182,8 +185,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final surah = reader.currentSurah;
     final settings = reader.settings;
 
+    final palette = AppThemeScope.paletteOf(context);
+    final screenClass = AppBreakpoints.of(context);
+    final hPad = AppBreakpoints.horizontalPadding(screenClass);
+
     return ColoredBox(
-      color: AppColors.background,
+      color: palette.background,
       child: Column(
         children: [
           AppTopBar(
@@ -250,8 +257,30 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ],
             ),
           ),
+          if (reader.isDetailOffline || reader.isDetailStale)
+            Padding(
+              padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 0),
+              child: StatusBanner(
+                kind: reader.isDetailOffline
+                    ? StatusBannerKind.offline
+                    : StatusBannerKind.stale,
+                message: reader.isDetailOffline
+                    ? 'Mode offline — menampilkan ayat tersimpan'
+                    : 'Menampilkan ayat tersimpan dari cache',
+                actionLabel: reader.isDetailOffline ? 'Coba lagi' : 'Segarkan',
+                onAction: () =>
+                    reader.loadSurah(widget.surahNumber, forceRefresh: true),
+              ),
+            ),
           Expanded(
-            child: _buildBody(context, reader, player, surah, settings),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: AppBreakpoints.contentMaxWidth(screenClass),
+                ),
+                child: _buildBody(context, reader, player, surah, settings),
+              ),
+            ),
           ),
         ],
       ),
@@ -447,9 +476,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   SyncStatusPill(
                     label: sync.isEstimated ||
@@ -457,8 +489,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         ? 'Sorotan perkiraan'
                         : 'Sinkronisasi Ayat Otomatis',
                   ),
-                  if (_manualScrolling && sync.activeAyah != null) ...[
-                    const SizedBox(width: 8),
+                  if (_manualScrolling && sync.activeAyah != null)
                     PillButton(
                       label: 'Kembali ke ayat ${sync.activeAyah}',
                       style: PillButtonStyle.highlight,
@@ -468,7 +499,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         _scrollToAyah(sync.activeAyah!);
                       },
                     ),
-                  ],
                 ],
               ),
             ),

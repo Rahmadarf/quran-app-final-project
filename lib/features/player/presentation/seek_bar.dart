@@ -89,11 +89,13 @@ class _SeekBarState extends State<SeekBar> {
             child: SizedBox(
               height: 20,
               width: double.infinity,
-              child: CustomPaint(
-                painter: _SeekPainter(
-                  value: value,
-                  buffered: widget.buffered,
-                  dragging: _dragging,
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _SeekPainter(
+                    value: value,
+                    buffered: widget.buffered,
+                    dragging: _dragging,
+                  ),
                 ),
               ),
             ),
@@ -204,11 +206,19 @@ class PlayerTimeline extends StatelessWidget {
       children: [
         Text(elapsed, style: time),
         if (centerLabel != null)
-          Text(
-            centerLabel!.toUpperCase(),
-            style: AppTextStyles.micro.copyWith(
-              color: AppColors.accentLight,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                centerLabel!.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.micro.copyWith(
+                  color: AppColors.accentLight,
+                  letterSpacing: 0.5,
+                ),
+              ),
             ),
           ),
         Text(remaining, style: time),

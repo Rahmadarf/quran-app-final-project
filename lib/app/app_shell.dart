@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../core/utils/breakpoints.dart';
 import '../features/catalog/presentation/explore_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/library/presentation/library_screen.dart';
@@ -15,6 +16,7 @@ import '../shared/widgets/bottom_nav_bar.dart';
 import '../shared/widgets/icon_circle_button.dart';
 import 'app_colors.dart';
 import 'router.dart';
+import 'theme.dart';
 
 /// Cangkang aplikasi: empat tab, Mini Player (Compact/Medium) atau Player Bar
 /// (Expanded >= 840 dp) di atas/bawah bilah navigasi (docs/05 §1, 07 §0.1).
@@ -32,10 +34,12 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final player = PlayerScope.of(context);
     final current = player.state.current;
-    final isExpanded = MediaQuery.sizeOf(context).width >= 840;
+    final screenClass = AppBreakpoints.of(context);
+    final isExpanded = screenClass == ScreenClass.expanded;
+    final palette = AppThemeScope.paletteOf(context);
 
     return ColoredBox(
-      color: AppColors.background,
+      color: palette.background,
       child: Column(
         children: [
           Expanded(
@@ -70,7 +74,7 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                     title: current?.title ?? 'Surat Ar-Rahman',
-                    subtitle: current?.subtitle ?? 'Misyari Rasyid Al-Afasi',
+                    subtitle: current?.subtitle ?? player.selectedQariName,
                     progress: pos.progress,
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.player),

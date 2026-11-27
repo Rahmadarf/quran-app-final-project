@@ -71,7 +71,11 @@ class MediaCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image(
-                    image: image,
+                    image: ResizeImage.resizeIfNeeded(
+                      (width * 3).round(),
+                      null,
+                      image,
+                    ),
                     fit: BoxFit.cover,
                     alignment: imageAlignment,
                     excludeFromSemantics: true,
