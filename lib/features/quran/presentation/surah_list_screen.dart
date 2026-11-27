@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:gap/gap.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
@@ -11,7 +11,6 @@ import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_search_field.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/app_top_bar.dart';
-import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
@@ -23,8 +22,7 @@ import '../application/quran_providers.dart';
 import '../domain/surah.dart';
 import 'surah_row.dart';
 
-/// Daftar 114 surat dari API equran.id dengan pencarian, filter Mekah/Madinah,
-/// dan kartu "Lanjutkan membaca" (docs/06 §2.1).
+/// Daftar 114 surat dual-mode sesuai Figma `02 — Daftar Surat (Al-Qur'an)`.
 class SurahListScreen extends StatefulWidget {
   const SurahListScreen({super.key});
 
@@ -34,7 +32,7 @@ class SurahListScreen extends StatefulWidget {
 
 class _SurahListScreenState extends State<SurahListScreen> {
   String _query = '';
-  int _filterIndex = 0; // 0: Semua, 1: Mekah, 2: Madinah
+  int _filterIndex = 0; // 0: Semua, 1: Makkiyah, 2: Madaniyah
   bool _requestedInitial = false;
 
   @override
@@ -83,33 +81,63 @@ class _SurahListScreenState extends State<SurahListScreen> {
       child: Column(
         children: [
           AppTopBar(
-            leading: const AvatarRing(
-              image: AssetImage('assets/images/avatars/aisyah.png'),
-              semanticLabel: 'Foto profil Aisyah',
-            ),
+            showBottomBorder: false,
             center: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   "Al-Qur'an",
-                  style: AppTextStyles.heading.copyWith(
-                    color: palette.textPrimary,
-                  ),
+                  style: AppTextStyles.display
+                      .copyWith(color: palette.textPrimary),
                 ),
                 Text(
-                  '114 Surat · Terjemahan & Audio',
-                  style: AppTextStyles.micro.copyWith(
-                    color: palette.accentLight,
-                    letterSpacing: 0,
-                  ),
+                  '114 Surat · 6.236 Ayat',
+                  style:
+                      AppTextStyles.caption.copyWith(color: palette.textMuted),
                 ),
               ],
+            ),
+            trailing: Pressable(
+              onTap: () => Navigator.of(context).pushNamed(AppRoutes.player),
+              semanticLabel: 'Qari aktif ${player.selectedQariName}',
+              child: AppSurface(
+                color: palette.surface,
+                borderColor: palette.border,
+                radius: 999,
+                padding: const EdgeInsets.fromLTRB(6, 5, 12, 5),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ClipOval(
+                      child: Image(
+                        image: ResizeImage.resizeIfNeeded(
+                          72,
+                          null,
+                          const AssetImage(
+                            'assets/images/qari/misyari-rasyid-al-afasi.webp',
+                          ),
+                        ),
+                        width: 22,
+                        height: 22,
+                        fit: BoxFit.cover,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
+                    const Gap(7),
+                    Text(
+                      player.selectedQariName.split(' ').last,
+                      style: AppTextStyles.label
+                          .copyWith(color: palette.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
           if (reader.isSurahsOffline || reader.isSurahsStale)
             Padding(
-              padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 0),
+              padding: EdgeInsets.fromLTRB(hPad, 4, hPad, 6),
               child: StatusBanner(
                 kind: reader.isSurahsOffline
                     ? StatusBannerKind.offline
@@ -122,89 +150,99 @@ class _SurahListScreenState extends State<SurahListScreen> {
               ),
             ),
           Padding(
-            padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 8),
-          child: Column(
-            children: [
-              AppSearchField(
-                hint: 'Cari nama surat, arti, atau nomor (mis. 36)...',
-                onChanged: (v) => setState(() => _query = v),
-              ),
-              const SizedBox(height: 10),
-              FilterChipBar(
-                padding: EdgeInsets.zero,
-                items: const [
-                  FilterChipItem('Semua'),
-                  FilterChipItem('Makkiyah'),
-                  FilterChipItem('Madinah'),
-                ],
-                selectedIndex: _filterIndex,
-                onSelected: (i) => setState(() => _filterIndex = i),
-              ),
-            ],
-          ),
-        ),
-        if (lastRead != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Pressable(
-              onTap: () => Navigator.of(context).pushNamed(
-                AppRoutes.readerFor(lastRead.surahNumber, ayah: lastRead.ayahNumber),
-              ),
-              semanticLabel:
-                  'Lanjutkan membaca ${lastRead.surahName} ayat ${lastRead.ayahNumber}',
-              child: AppSurface(
-                color: AppColors.surfaceActive,
-                borderColor: AppColors.accentAt(0.5),
-                radius: 12,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(
-                  children: [
-                    const AppIcon(
-                      AppIcons.bookmarkFilled,
-                      size: 16,
-                      color: AppColors.accentLight,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Lanjutkan membaca',
-                            style: AppTextStyles.micro.copyWith(
-                              color: AppColors.accentLight,
-                              letterSpacing: 0,
-                            ),
-                          ),
-                          Text(
-                            '${lastRead.surahName} · Ayat ${lastRead.ayahNumber}',
-                            style: AppTextStyles.cardTitle,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const AppIcon(
-                      AppIcons.chevronRight,
-                      size: 12,
-                      color: AppColors.accentLight,
-                    ),
+            padding: EdgeInsets.fromLTRB(hPad, 4, hPad, 10),
+            child: Column(
+              children: [
+                AppSearchField(
+                  hint: 'Cari nama surat, arti, atau nomor…',
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+                const Gap(12),
+                FilterChipBar(
+                  padding: EdgeInsets.zero,
+                  items: const [
+                    FilterChipItem('Semua'),
+                    FilterChipItem('Makkiyah'),
+                    FilterChipItem('Madaniyah'),
                   ],
+                  selectedIndex: _filterIndex,
+                  onSelected: (i) => setState(() => _filterIndex = i),
+                ),
+              ],
+            ),
+          ),
+          if (lastRead != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 10),
+              child: Pressable(
+                onTap: () => Navigator.of(context).pushNamed(
+                  AppRoutes.readerFor(
+                    lastRead.surahNumber,
+                    ayah: lastRead.ayahNumber,
+                  ),
+                ),
+                semanticLabel:
+                    'Lanjutkan membaca ${lastRead.surahName} ayat ${lastRead.ayahNumber}',
+                child: AppSurface(
+                  color: palette.accentSoft,
+                  borderColor: palette.borderAccent,
+                  radius: 12,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      AppIcon(
+                        AppIcons.bookmarkFilled,
+                        size: 16,
+                        color: palette.accentLight,
+                      ),
+                      const Gap(10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'LANJUTKAN MEMBACA',
+                              style: AppTextStyles.micro
+                                  .copyWith(color: palette.accentLight),
+                            ),
+                            Text(
+                              '${lastRead.surahName} · Ayat ${lastRead.ayahNumber}',
+                              style: AppTextStyles.cardTitle
+                                  .copyWith(color: palette.textPrimary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppIcon(
+                        AppIcons.chevronRight,
+                        size: 11,
+                        color: palette.accentLight,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          Expanded(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: AppBreakpoints.contentMaxWidth(screenClass),
+                ),
+                child: _buildBody(
+                  context,
+                  reader,
+                  player,
+                  allSurahs,
+                  visible,
+                  hPad,
                 ),
               ),
             ),
           ),
-        Expanded(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: AppBreakpoints.contentMaxWidth(screenClass),
-              ),
-              child: _buildBody(context, reader, player, allSurahs, visible),
-            ),
-          ),
-        ),
-      ],
-    ),
+        ],
+      ),
     );
   }
 
@@ -214,13 +252,14 @@ class _SurahListScreenState extends State<SurahListScreen> {
     PlayerController player,
     List<Surah> allSurahs,
     List<Surah> visible,
+    double hPad,
   ) {
     if (reader.loadingSurahs && allSurahs.isEmpty) {
       return ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: EdgeInsets.fromLTRB(hPad, 4, hPad, 24),
         itemCount: 8,
-        separatorBuilder: (_, _) => const SizedBox(height: 8),
-        itemBuilder: (_, _) => const SkeletonBox(height: 60, radius: 14),
+        separatorBuilder: (_, _) => const Gap(10),
+        itemBuilder: (_, _) => const SkeletonBox(height: 58, radius: 12),
       );
     }
 
@@ -245,10 +284,9 @@ class _SurahListScreenState extends State<SurahListScreen> {
     }
 
     final activeSurahNo = player.state.current?.surahNumber;
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
       itemCount: visible.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final surah = visible[index];
         final isPlaying = player.playing && activeSurahNo == surah.number;

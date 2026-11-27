@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../features/catalog/presentation/collection_detail_screen.dart';
 import '../features/player/presentation/fullscreen_player.dart';
 import '../features/reader/presentation/reader_screen.dart';
 import 'app_shell.dart';
@@ -9,6 +10,7 @@ abstract final class AppRoutes {
   static const String home = '/';
   static const String reader = '/quran/55';
   static const String player = '/putar';
+  static const String collection = '/koleksi/surat-populer';
 
   static String readerFor(int surahNumber, {int? ayah}) {
     if (ayah != null && ayah > 0) {
@@ -24,6 +26,10 @@ Route<dynamic> onGenerateRoute(RouteSettings settings) {
 
   if (name == AppRoutes.player || name == '/player') {
     return _slideUp(settings, const FullscreenPlayerScreen());
+  }
+
+  if (name == AppRoutes.collection || name.startsWith('/koleksi/')) {
+    return _fade(settings, const CollectionDetailScreen());
   }
 
   if (uri != null &&

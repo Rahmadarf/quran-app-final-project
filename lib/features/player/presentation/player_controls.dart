@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 
-/// Baris kontrol utama Fullscreen Player:
+/// Baris kontrol utama Fullscreen Player dual-mode:
 /// acak, sebelumnya, putar/jeda, berikutnya, ulang.
 class PlayerControls extends StatelessWidget {
   const PlayerControls({
@@ -23,8 +23,6 @@ class PlayerControls extends StatelessWidget {
 
   final bool playing;
   final bool shuffleOn;
-
-  /// Mode ulang satu ayat aktif: ikon "ulang 1" plus titik penanda.
   final bool repeatOne;
   final VoidCallback? onShuffle;
   final VoidCallback? onPrevious;
@@ -36,6 +34,8 @@ class PlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -45,36 +45,36 @@ class PlayerControls extends StatelessWidget {
             icon: AppIcons.shuffle,
             semanticLabel: shuffleOn ? 'Acak aktif' : 'Acak mati',
             size: 44,
-            iconSize: 16,
-            iconColor: shuffleOn ? AppColors.accentLight : AppColors.textBody,
+            iconSize: 18,
+            iconColor: shuffleOn ? palette.accentLight : palette.textMuted,
             dot: shuffleOn,
             onTap: onShuffle,
           ),
           IconCircleButton(
             icon: AppIcons.previous,
             semanticLabel: previousLabel,
-            style: IconCircleStyle.glass,
+            style: IconCircleStyle.ghost,
             size: 48,
-            iconSize: 16,
-            iconColor: AppColors.textMuted,
+            iconSize: 22,
+            iconColor: palette.textPrimary,
             onTap: onPrevious,
           ),
           IconCircleButton(
             icon: playing ? AppIcons.pause : AppIcons.play,
             semanticLabel: playing ? 'Jeda' : 'Putar',
             style: IconCircleStyle.primary,
-            size: 72,
-            iconSize: 22,
+            size: 64,
+            iconSize: 24,
             glow: true,
             onTap: onPlayPause,
           ),
           IconCircleButton(
             icon: AppIcons.next,
             semanticLabel: nextLabel,
-            style: IconCircleStyle.glass,
+            style: IconCircleStyle.ghost,
             size: 48,
-            iconSize: 16,
-            iconColor: AppColors.textMuted,
+            iconSize: 22,
+            iconColor: palette.textPrimary,
             onTap: onNext,
           ),
           IconCircleButton(
@@ -82,7 +82,7 @@ class PlayerControls extends StatelessWidget {
             semanticLabel: repeatOne ? 'Ulang satu ayat aktif' : 'Ulang mati',
             size: 44,
             iconSize: 18,
-            iconColor: repeatOne ? AppColors.accentLight : AppColors.textBody,
+            iconColor: repeatOne ? palette.accentLight : palette.textMuted,
             dot: repeatOne,
             onTap: onRepeat,
           ),

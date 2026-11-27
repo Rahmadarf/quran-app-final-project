@@ -1,13 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
 
-/// Baris aksi besar dengan kotak ikon di kiri dan panah di kanan
-/// (mis. "Buat Playlist Baru").
+/// Baris aksi besar dual-mode (mis. "Buat Playlist Baru").
 class ActionRowCard extends StatelessWidget {
   const ActionRowCard({
     super.key,
@@ -24,24 +23,26 @@ class ActionRowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: '$title. $subtitle',
       pressedScale: 0.99,
       child: AppSurface(
-        color: AppColors.surfaceDeep,
-        borderColor: AppColors.borderAt(0.3),
+        color: palette.surface,
+        borderColor: palette.border,
         radius: 12,
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             AppSurface(
-              color: AppColors.surface,
-              radius: 12,
-              width: 48,
-              height: 48,
+              color: palette.surfaceElevated,
+              radius: 10,
+              width: 44,
+              height: 44,
               child: Center(
-                child: AppIcon(icon, size: 19, color: AppColors.accentLight),
+                child: AppIcon(icon, size: 18, color: palette.accentLight),
               ),
             ),
             const SizedBox(width: 12),
@@ -49,21 +50,25 @@ class ActionRowCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.rowTitle),
+                  Text(
+                    title,
+                    style: AppTextStyles.rowTitle
+                        .copyWith(color: palette.textPrimary),
+                  ),
                   Text(
                     subtitle,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.label
-                        .copyWith(color: AppColors.textFaint),
+                    style: AppTextStyles.caption
+                        .copyWith(color: palette.textMuted),
                   ),
                 ],
               ),
             ),
-            const AppIcon(
+            AppIcon(
               AppIcons.chevronRight,
-              size: 10,
-              color: AppColors.placeholder,
+              size: 11,
+              color: palette.textMuted,
             ),
           ],
         ),

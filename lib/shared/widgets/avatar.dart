@@ -1,25 +1,23 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'pressable.dart';
 
-/// Foto bulat dengan cincin dan (opsional) titik status.
+/// Foto bulat dual-mode dengan cincin dan (opsional) titik status.
 class AvatarRing extends StatelessWidget {
   const AvatarRing({
     super.key,
     required this.image,
     this.size = 40,
-    this.ringWidth = 2,
-    this.ringColor = AppColors.accent,
+    this.ringWidth = 1.5,
+    this.ringColor,
     this.onlineDot = false,
     this.alignment = Alignment.center,
     this.semanticLabel,
   });
 
   final ImageProvider image;
-
-  /// Diameter foto (cincin digambar di luarnya).
   final double size;
   final double ringWidth;
   final Color? ringColor;
@@ -29,7 +27,10 @@ class AvatarRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = size + (ringColor == null ? 0 : ringWidth * 2);
+    final palette = AppThemeScope.paletteOf(context);
+    final effectiveRing = ringColor ?? palette.borderStrong;
+    final total = size + ringWidth * 2;
+
     return Semantics(
       image: true,
       label: semanticLabel,
@@ -42,10 +43,8 @@ class AvatarRing extends StatelessWidget {
             DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.surface,
-                border: ringColor == null
-                    ? null
-                    : Border.all(color: ringColor!, width: ringWidth),
+                color: palette.surface,
+                border: Border.all(color: effectiveRing, width: ringWidth),
               ),
               child: ClipOval(
                 child: Image(
@@ -67,12 +66,12 @@ class AvatarRing extends StatelessWidget {
                 right: 0,
                 bottom: 0,
                 child: Container(
-                  width: 12,
-                  height: 12,
+                  width: 11,
+                  height: 11,
                   decoration: BoxDecoration(
-                    color: AppColors.accentLight,
+                    color: palette.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.background, width: 2),
+                    border: Border.all(color: palette.background, width: 2),
                   ),
                 ),
               ),
@@ -83,7 +82,7 @@ class AvatarRing extends StatelessWidget {
   }
 }
 
-/// Qari bulat dengan nama di bawah (rak "Qari Favorit").
+/// Qari bulat dual-mode dengan cincin emerald saat terpilih (`Obsidian / QariAvatar`).
 class QariAvatarItem extends StatelessWidget {
   const QariAvatarItem({
     super.key,
@@ -102,28 +101,30 @@ class QariAvatarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: 'Qari $name',
       child: SizedBox(
-        width: 64,
+        width: 68,
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.surface,
+                color: palette.surface,
                 border: Border.all(
-                  color: selected ? AppColors.accent : AppColors.border,
+                  color: selected ? palette.borderAccent : palette.border,
                   width: selected ? 2 : 1,
                 ),
               ),
               child: ClipOval(
                 child: Image(
-                  image: ResizeImage.resizeIfNeeded(168, null, image),
-                  width: 56,
-                  height: 56,
+                  image: ResizeImage.resizeIfNeeded(180, null, image),
+                  width: 58,
+                  height: 58,
                   fit: BoxFit.cover,
                   alignment: alignment,
                   excludeFromSemantics: true,
@@ -135,7 +136,10 @@ class QariAvatarItem extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.captionMedium,
+              style: AppTextStyles.label.copyWith(
+                color: selected ? palette.accentLight : palette.textPrimary,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -144,7 +148,7 @@ class QariAvatarItem extends StatelessWidget {
   }
 }
 
-/// Avatar bulat berisi inisial (mis. "AS") untuk qari tanpa foto.
+/// Avatar bulat berisi inisial untuk qari tanpa foto.
 class InitialsAvatar extends StatelessWidget {
   const InitialsAvatar({
     super.key,
@@ -159,13 +163,14 @@ class InitialsAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return ExcludeSemantics(
       child: Container(
         width: size,
         height: size,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: AppColors.accentLight,
+        decoration: BoxDecoration(
+          color: palette.accent,
           shape: BoxShape.circle,
         ),
         child: Text(
@@ -174,7 +179,7 @@ class InitialsAvatar extends StatelessWidget {
             size: fontSize,
             lineHeight: fontSize + 6,
             weight: FontWeight.w600,
-            color: AppColors.sheet,
+            color: palette.onAccent,
           ),
         ),
       ),

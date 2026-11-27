@@ -1,14 +1,13 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pressable.dart';
 
-/// Kartu penanda ayat: rujukan, halaman mushaf, aksi dengar/hapus, teks Arab,
-/// dan terjemahan satu baris. Teks ditampilkan apa adanya dari data.
+/// Kartu penanda ayat dual-mode sesuai Figma `Obsidian / BookmarkCard`.
 class BookmarkCard extends StatelessWidget {
   const BookmarkCard({
     super.key,
@@ -21,12 +20,9 @@ class BookmarkCard extends StatelessWidget {
     this.onRemove,
   });
 
-  /// Mis. "QS. Ar-Rahman : 13".
   final String reference;
   final String arabic;
   final String translation;
-
-  /// Mis. "Halaman 531".
   final String? page;
   final VoidCallback? onTap;
   final VoidCallback? onListen;
@@ -34,15 +30,17 @@ class BookmarkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: 'Penanda $reference',
       pressedScale: 0.99,
       child: AppSurface(
-        color: AppColors.surfaceVerse,
-        borderColor: AppColors.borderAt(0.3),
+        color: palette.surface,
+        borderColor: palette.border,
         radius: 12,
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -52,23 +50,12 @@ class BookmarkCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Flexible(
-                        child: AppSurface(
-                          color: AppColors.surface,
-                          borderColor: AppColors.border,
-                          radius: 999,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
-                          ),
-                          child: Text(
-                            reference,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.micro.copyWith(
-                              color: AppColors.accentLight,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0,
-                            ),
+                        child: Text(
+                          reference.toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.micro.copyWith(
+                            color: palette.accentLight,
                           ),
                         ),
                       ),
@@ -79,9 +66,8 @@ class BookmarkCard extends StatelessWidget {
                             page!,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.micro.copyWith(
-                              color: AppColors.textFaint,
-                              fontWeight: FontWeight.w500,
+                            style: AppTextStyles.caption.copyWith(
+                              color: palette.textMuted,
                             ),
                           ),
                         ),
@@ -94,7 +80,7 @@ class BookmarkCard extends StatelessWidget {
                   semanticLabel: 'Dengarkan $reference',
                   size: 32,
                   iconSize: 14,
-                  iconColor: AppColors.accent,
+                  iconColor: palette.accentLight,
                   onTap: onListen,
                 ),
                 IconCircleButton(
@@ -102,12 +88,12 @@ class BookmarkCard extends StatelessWidget {
                   semanticLabel: 'Hapus penanda $reference',
                   size: 32,
                   iconSize: 14,
-                  iconColor: AppColors.textFaint,
+                  iconColor: palette.textMuted,
                   onTap: onRemove,
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: Text(
@@ -115,23 +101,18 @@ class BookmarkCard extends StatelessWidget {
                 textAlign: TextAlign.right,
                 textDirection: TextDirection.rtl,
                 style: AppTextStyles.arabic(
-                  size: 22,
-                  lineHeight: 44,
-                  color: AppColors.textPrimary,
+                  size: 20,
+                  lineHeight: 38,
+                  color: palette.textPrimary,
                 ),
               ),
             ),
             const SizedBox(height: 6),
             Text(
-              '"$translation"',
-              maxLines: 1,
+              translation,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.custom(
-                size: 13,
-                lineHeight: 19.5,
-                style: FontStyle.italic,
-                color: AppColors.textFaint,
-              ),
+              style: AppTextStyles.caption.copyWith(color: palette.textMuted),
             ),
           ],
         ),

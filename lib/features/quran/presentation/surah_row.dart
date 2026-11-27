@@ -1,14 +1,14 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pressable.dart';
 import '../domain/surah.dart';
 
-/// Baris satu surat pada daftar 114 surat (docs/06 §2.1, 07 §0.4).
+/// Baris satu surat bergaya zero-card hairline sesuai Figma `Obsidian / SurahRow`.
 class SurahRow extends StatelessWidget {
   const SurahRow({
     super.key,
@@ -25,80 +25,99 @@ class SurahRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+    final paddedNo = surah.number.toString().padLeft(2, '0');
+
     return Pressable(
       onTap: onTap,
       semanticLabel:
           'Surat ${surah.number} ${surah.latinName}, ${surah.meaning}, ${surah.ayahCount} ayat, ${surah.revelation.label}',
-      child: AppSurface(
-        color: isPlaying ? AppColors.surfaceActive : AppColors.surfaceCard,
-        borderColor: isPlaying ? AppColors.accent : AppColors.borderAt(0.35),
-        radius: 14,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            AppSurface(
-              color: AppColors.numberBadge,
-              radius: 10,
-              width: 38,
-              height: 38,
-              child: Center(
-                child: Text(
-                  '${surah.number}',
-                  style: AppTextStyles.custom(
-                    size: 13,
-                    lineHeight: 18,
-                    weight: FontWeight.w700,
-                    color: AppColors.accentLight,
+      pressedScale: 0.99,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: palette.border)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Row(
+            children: [
+              AppSurface(
+                color: isPlaying ? palette.accentSoft : palette.surface,
+                borderColor:
+                    isPlaying ? palette.borderAccent : palette.border,
+                radius: 8,
+                width: 36,
+                height: 36,
+                child: Center(
+                  child: Text(
+                    paddedNo,
+                    style: AppTextStyles.label.copyWith(
+                      color: isPlaying
+                          ? palette.accentLight
+                          : palette.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    surah.latinName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.cardTitle,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${surah.meaning} · ${surah.ayahCount} ayat · ${surah.revelation.label}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption,
-                  ),
-                ],
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      surah.latinName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.cardTitle.copyWith(
+                        color: isPlaying
+                            ? palette.accentLight
+                            : palette.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isPlaying
+                          ? 'Sedang diputar · ${surah.ayahCount} Ayat'
+                          : '${surah.meaning} · ${surah.ayahCount} Ayat · ${surah.revelation.label}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption.copyWith(
+                        color: isPlaying
+                            ? palette.accentLight
+                            : palette.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              surah.arabicName,
-              textDirection: TextDirection.rtl,
-              style: AppTextStyles.arabic(
-                size: 18,
-                lineHeight: 28,
-                color: AppColors.accentLight,
+              const SizedBox(width: 10),
+              Text(
+                surah.arabicName,
+                textDirection: TextDirection.rtl,
+                style: AppTextStyles.arabic(
+                  size: 20,
+                  lineHeight: 30,
+                  color: palette.textPrimary,
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            IconCircleButton(
-              icon: isPlaying ? AppIcons.pause : AppIcons.playOutline,
-              semanticLabel:
-                  isPlaying ? 'Jeda ${surah.latinName}' : 'Putar ${surah.latinName}',
-              style: isPlaying
-                  ? IconCircleStyle.primary
-                  : IconCircleStyle.ghost,
-              size: 36,
-              iconSize: isPlaying ? 12 : 16,
-              iconColor:
-                  isPlaying ? AppColors.onLight : AppColors.accentLight,
-              onTap: onPlay,
-            ),
-          ],
+              const SizedBox(width: 12),
+              IconCircleButton(
+                icon: isPlaying ? AppIcons.pause : AppIcons.play,
+                semanticLabel: isPlaying
+                    ? 'Jeda ${surah.latinName}'
+                    : 'Putar ${surah.latinName}',
+                style: isPlaying
+                    ? IconCircleStyle.primary
+                    : IconCircleStyle.tonal,
+                size: 34,
+                iconSize: 13,
+                iconColor:
+                    isPlaying ? palette.onAccent : palette.textPrimary,
+                onTap: onPlay,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../core/utils/duration_format.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -22,6 +22,7 @@ Future<void> showQueueSheet(BuildContext context, PlayerController player) {
     builder: (context, close) => AnimatedBuilder(
       animation: player,
       builder: (context, _) {
+        final palette = AppThemeScope.paletteOf(context);
         final queue = player.state.queue;
         final activeIdx = player.state.currentIndex;
 
@@ -32,7 +33,7 @@ Future<void> showQueueSheet(BuildContext context, PlayerController player) {
               children: [
                 Text(
                   'Antrean masih kosong.',
-                  style: AppTextStyles.body.copyWith(color: AppColors.sheetMuted),
+                  style: AppTextStyles.body.copyWith(color: palette.textMuted),
                 ),
                 const SizedBox(height: 12),
                 AppButton(
@@ -92,14 +93,15 @@ class _QueueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Semantics(
       selected: active,
       child: Pressable(
         onTap: onTap,
         semanticLabel: '${item.title}, ${item.subtitle}',
         child: AppSurface(
-          color: active ? AppColors.surfaceStrong : AppColors.surfaceCard,
-          borderColor: active ? AppColors.accent : null,
+          color: active ? palette.surfaceActive : palette.surfaceElevated,
+          borderColor: active ? palette.accent : palette.border,
           radius: 12,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
@@ -116,9 +118,8 @@ class _QueueRow extends StatelessWidget {
                         size: 13,
                         lineHeight: 18,
                         weight: FontWeight.w600,
-                        color: active
-                            ? AppColors.accentLight
-                            : AppColors.sheetText,
+                        color:
+                            active ? palette.accentLight : palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -129,7 +130,8 @@ class _QueueRow extends StatelessWidget {
                       style: AppTextStyles.custom(
                         size: 11,
                         lineHeight: 15,
-                        color: AppColors.sheetMuted,
+                        color: palette.textMuted,
+                        tabular: true,
                       ),
                     ),
                   ],
@@ -141,7 +143,7 @@ class _QueueRow extends StatelessWidget {
                   semanticLabel: 'Naikkan urutan',
                   size: 32,
                   iconSize: 12,
-                  iconColor: AppColors.sheetMuted,
+                  iconColor: palette.textMuted,
                   onTap: onMoveUp,
                 ),
               if (onMoveDown != null)
@@ -150,7 +152,7 @@ class _QueueRow extends StatelessWidget {
                   semanticLabel: 'Turunkan urutan',
                   size: 32,
                   iconSize: 12,
-                  iconColor: AppColors.sheetMuted,
+                  iconColor: palette.textMuted,
                   onTap: onMoveDown,
                 ),
               IconCircleButton(
@@ -158,7 +160,7 @@ class _QueueRow extends StatelessWidget {
                 semanticLabel: 'Hapus dari antrean',
                 size: 32,
                 iconSize: 14,
-                iconColor: AppColors.sheetMuted,
+                iconColor: palette.textMuted,
                 onTap: onRemove,
               ),
             ],

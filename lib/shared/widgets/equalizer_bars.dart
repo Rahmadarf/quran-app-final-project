@@ -2,19 +2,19 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
+import '../../app/theme.dart';
 
 /// Tiga batang penanda "sedang memutar". Bergerak saat [playing] true.
 class EqualizerBars extends StatefulWidget {
   const EqualizerBars({
     super.key,
     this.playing = true,
-    this.color = AppColors.accentLight,
+    this.color,
     this.height = 12,
   });
 
   final bool playing;
-  final Color color;
+  final Color? color;
   final double height;
 
   @override
@@ -52,11 +52,13 @@ class _EqualizerBarsState extends State<EqualizerBars>
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor =
+        widget.color ?? AppThemeScope.paletteOf(context).accent;
     return ExcludeSemantics(
       child: RepaintBoundary(
         child: CustomPaint(
           size: Size(10, widget.height),
-          painter: _BarsPainter(_controller, widget.color),
+          painter: _BarsPainter(_controller, effectiveColor),
         ),
       ),
     );

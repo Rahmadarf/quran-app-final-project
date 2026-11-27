@@ -50,7 +50,9 @@ enum AppIcons {
   textSize,
   mushaf,
   sparkle,
-  check;
+  check,
+  sun,
+  moon;
 
   String get asset => 'assets/icons/${_fileName(name)}.svg';
 

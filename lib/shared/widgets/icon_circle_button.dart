@@ -1,28 +1,19 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
 
 enum IconCircleStyle {
-  /// Tanpa latar.
   ghost,
-
-  /// Latar `surface` polos.
   tonal,
-
-  /// Latar `surface` dengan garis tepi (tombol cari di header).
   outlined,
-
-  /// Latar terang (`accentLight`) untuk aksi utama seperti putar/jeda.
   primary,
-
-  /// Kaca: latar transparan dengan blur (tombol di Fullscreen Player).
   glass,
 }
 
-/// Tombol bulat berisi satu ikon.
+/// Tombol bulat dual-mode berisi satu ikon sesuai `Obsidian / IconButton`.
 class IconCircleButton extends StatelessWidget {
   const IconCircleButton({
     super.key,
@@ -38,28 +29,23 @@ class IconCircleButton extends StatelessWidget {
   });
 
   final AppIcons icon;
-
-  /// Wajib: tombol ikon harus punya nama untuk pembaca layar.
   final String semanticLabel;
   final VoidCallback? onTap;
   final double size;
   final double? iconSize;
   final IconCircleStyle style;
   final Color? iconColor;
-
-  /// Cahaya biru di bawah tombol (tombol putar besar).
   final bool glow;
-
-  /// Titik kecil penanda "aktif" di bawah ikon (mode ulang).
   final bool dot;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     final isPrimary = style == IconCircleStyle.primary;
     final color = iconColor ??
-        (isPrimary ? AppColors.onLight : AppColors.textMuted);
+        (isPrimary ? palette.onAccent : palette.textPrimary);
 
-    Widget glyph = AppIcon(icon, size: iconSize ?? size * 0.4, color: color);
+    Widget glyph = AppIcon(icon, size: iconSize ?? size * 0.42, color: color);
     if (dot) {
       glyph = Stack(
         clipBehavior: Clip.none,
@@ -68,12 +54,12 @@ class IconCircleButton extends StatelessWidget {
           glyph,
           Positioned(
             bottom: -(size * 0.2),
-            child: const SizedBox(
+            child: SizedBox(
               width: 4,
               height: 4,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.accentLight,
+                  color: palette.accent,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -93,31 +79,31 @@ class IconCircleButton extends StatelessWidget {
         ),
       IconCircleStyle.tonal => AppSurface(
           shape: BoxShape.circle,
-          color: AppColors.surface,
+          color: palette.surfaceElevated,
           width: size,
           height: size,
           child: Center(child: glyph),
         ),
       IconCircleStyle.outlined => AppSurface(
           shape: BoxShape.circle,
-          color: AppColors.surface,
-          borderColor: AppColors.borderAt(0.5),
+          color: palette.surface,
+          borderColor: palette.border,
           width: size,
           height: size,
           child: Center(child: glyph),
         ),
       IconCircleStyle.primary => AppSurface(
           shape: BoxShape.circle,
-          color: AppColors.accentLight,
+          color: palette.accent,
           width: size,
           height: size,
           clip: false,
           shadows: glow
               ? [
                   BoxShadow(
-                    color: AppColors.accentAt(0.45),
-                    blurRadius: 12,
-                    offset: const Offset(0, 8),
+                    color: palette.accent.withValues(alpha: 0.35),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ]
               : null,
@@ -125,8 +111,8 @@ class IconCircleButton extends StatelessWidget {
         ),
       IconCircleStyle.glass => AppSurface(
           shape: BoxShape.circle,
-          color: AppColors.surfaceAt(0.8),
-          borderColor: AppColors.borderAt(0.5),
+          color: palette.surface.withValues(alpha: 0.88),
+          borderColor: palette.borderStrong,
           blur: 12,
           width: size,
           height: size,

@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/number_stepper.dart';
@@ -46,6 +46,7 @@ class _AyahPickerBodyState extends State<_AyahPickerBody> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
@@ -56,7 +57,8 @@ class _AyahPickerBodyState extends State<_AyahPickerBody> {
             style: AppTextStyles.custom(
               size: 12,
               lineHeight: 17,
-              color: AppColors.sheetMuted,
+              color: palette.textMuted,
+              tabular: true,
             ),
           ),
           const SizedBox(height: 31),

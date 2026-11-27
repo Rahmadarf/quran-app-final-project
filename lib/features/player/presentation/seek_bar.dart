@@ -1,10 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 
-/// Bilah geser pemutar yang digambar sendiri: lintasan, buffer, progres
-/// bergradasi, dan pegangan bercahaya. Bisa diketuk atau diseret.
+/// Bilah geser pemutar dual-mode sesuai Figma `Obsidian / SeekBar`.
 class SeekBar extends StatefulWidget {
   const SeekBar({
     super.key,
@@ -16,16 +15,11 @@ class SeekBar extends StatefulWidget {
     this.semanticValue,
   });
 
-  /// Posisi 0..1.
   final double value;
-
-  /// Bagian yang sudah dimuat 0..1.
   final double buffered;
   final ValueChanged<double>? onChanged;
   final ValueChanged<double>? onChangeEnd;
   final String semanticLabel;
-
-  /// Teks posisi untuk pembaca layar, mis. "4 menit 15 detik".
   final String? semanticValue;
 
   @override
@@ -43,6 +37,7 @@ class _SeekBarState extends State<SeekBar> {
   Widget build(BuildContext context) {
     final value = _drag ?? widget.value;
     final enabled = widget.onChanged != null;
+    final palette = AppThemeScope.paletteOf(context);
 
     return Semantics(
       slider: true,
@@ -70,7 +65,8 @@ class _SeekBarState extends State<SeekBar> {
                   }
                 : null,
             onHorizontalDragStart: enabled
-                ? (d) => setState(() => _drag = _fraction(d.localPosition, width))
+                ? (d) =>
+                    setState(() => _drag = _fraction(d.localPosition, width))
                 : null,
             onHorizontalDragUpdate: enabled
                 ? (d) {
@@ -87,7 +83,7 @@ class _SeekBarState extends State<SeekBar> {
                   }
                 : null,
             child: SizedBox(
-              height: 20,
+              height: 22,
               width: double.infinity,
               child: RepaintBoundary(
                 child: CustomPaint(
@@ -95,6 +91,7 @@ class _SeekBarState extends State<SeekBar> {
                     value: value,
                     buffered: widget.buffered,
                     dragging: _dragging,
+                    palette: palette,
                   ),
                 ),
               ),
@@ -111,19 +108,21 @@ class _SeekPainter extends CustomPainter {
     required this.value,
     required this.buffered,
     required this.dragging,
+    required this.palette,
   });
 
   final double value;
   final double buffered;
   final bool dragging;
+  final AppThemePalette palette;
 
-  static const double _trackHeight = 6;
-  static const double _thumb = 16;
+  static const double _trackHeight = 4;
+  static const double _thumb = 13;
 
   @override
   void paint(Canvas canvas, Size size) {
     final cy = size.height / 2;
-    final r = const Radius.circular(999);
+    const r = Radius.circular(999);
     final track = RRect.fromLTRBR(
       0,
       cy - _trackHeight / 2,
@@ -131,56 +130,51 @@ class _SeekPainter extends CustomPainter {
       cy + _trackHeight / 2,
       r,
     );
-    canvas.drawRRect(track, Paint()..color = AppColors.surface);
+    canvas.drawRRect(track, Paint()..color = palette.surfaceElevated);
 
     canvas.save();
     canvas.clipRRect(track);
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width * buffered.clamp(0, 1), size.height),
-      Paint()..color = AppColors.surfaceStrong,
-    );
+    if (buffered > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width * buffered.clamp(0, 1), size.height),
+        Paint()..color = palette.borderStrong,
+      );
+    }
     final playedWidth = size.width * value.clamp(0, 1);
     if (playedWidth > 0) {
       canvas.drawRect(
         Rect.fromLTWH(0, 0, playedWidth, size.height),
-        Paint()
-          ..shader = const LinearGradient(
-            colors: [AppColors.surfaceStrong, AppColors.accent],
-          ).createShader(Rect.fromLTWH(0, 0, playedWidth, size.height)),
+        Paint()..color = palette.accent,
       );
     }
     canvas.restore();
 
-    // Pegangan: cahaya, cincin gelap, isi terang.
     final half = _thumb / 2;
     final x = (size.width * value.clamp(0, 1)).clamp(half, size.width - half);
     final center = Offset(x, cy);
-    final scale = dragging ? 1.15 : 1.0;
-    canvas.drawCircle(
-      center,
-      half * scale,
-      Paint()
-        ..color = AppColors.accentAt(0.9)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
+    final scale = dragging ? 1.2 : 1.0;
+
     canvas.drawCircle(
       center,
       (half + 2) * scale,
-      Paint()..color = AppColors.background,
+      Paint()..color = palette.background,
     );
     canvas.drawCircle(
       center,
       half * scale,
-      Paint()..color = AppColors.accentLight,
+      Paint()..color = palette.accent,
     );
   }
 
   @override
   bool shouldRepaint(covariant _SeekPainter old) =>
-      old.value != value || old.buffered != buffered || old.dragging != dragging;
+      old.value != value ||
+      old.buffered != buffered ||
+      old.dragging != dragging ||
+      old.palette != palette;
 }
 
-/// Baris waktu di bawah bilah geser: sudah diputar, keterangan tengah, sisa.
+/// Baris waktu di bawah bilah geser (tabular-nums).
 class PlayerTimeline extends StatelessWidget {
   const PlayerTimeline({
     super.key,
@@ -195,12 +189,8 @@ class PlayerTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final time = AppTextStyles.custom(
-      size: 12,
-      lineHeight: 16,
-      weight: FontWeight.w500,
-      color: AppColors.textBody,
-    );
+    final palette = AppThemeScope.paletteOf(context);
+    final time = AppTextStyles.caption.copyWith(color: palette.textMuted);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -215,8 +205,8 @@ class PlayerTimeline extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.micro.copyWith(
-                  color: AppColors.accentLight,
-                  letterSpacing: 0.5,
+                  color: palette.accentLight,
+                  letterSpacing: 0.6,
                 ),
               ),
             ),

@@ -1,12 +1,11 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
+import '../../../shared/widgets/app_surface.dart';
 
-/// Tampilan ayat ala lirik di Fullscreen Player: ayat sebelumnya redup,
-/// ayat aktif besar dan bercahaya dengan terjemahan, lalu ayat berikutnya redup.
-///
-/// Teks Arab ditampilkan apa adanya dari data; widget ini tidak mengubahnya.
+/// Tampilan ayat tersinkronisasi dual-mode di Fullscreen Player sesuai Figma
+/// `06 — Fullscreen Player (Synced)`.
 class AyahLyricsView extends StatelessWidget {
   const AyahLyricsView({
     super.key,
@@ -14,22 +13,22 @@ class AyahLyricsView extends StatelessWidget {
     required this.translation,
     this.previousArabic,
     this.nextArabic,
+    this.ayahLabel,
   });
 
   final String activeArabic;
   final String translation;
   final String? previousArabic;
   final String? nextArabic;
-
-  static final Color _dim = const Color(0xFFC0C8CA).withValues(alpha: 0.4);
+  final String? ayahLabel;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     final dimStyle = AppTextStyles.arabic(
-      size: 18,
-      lineHeight: 27,
-      color: _dim,
-      letterSpacing: 0.45,
+      size: 17,
+      lineHeight: 28,
+      color: palette.textMuted.withValues(alpha: 0.45),
     );
 
     return Semantics(
@@ -41,78 +40,76 @@ class AyahLyricsView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (previousArabic != null)
+              if (previousArabic != null) ...[
                 Text(
                   previousArabic!,
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: dimStyle,
                 ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 12),
+              ],
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: Column(
+                duration: const Duration(milliseconds: 280),
+                child: AppSurface(
                   key: ValueKey(activeArabic),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
+                  color: palette.accentSoft,
+                  borderColor: palette.borderAccent,
+                  radius: 14,
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (ayahLabel != null) ...[
+                        Text(
+                          ayahLabel!.toUpperCase(),
+                          style: AppTextStyles.micro
+                              .copyWith(color: palette.accentLight),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+                      Text(
                         activeArabic,
                         textAlign: TextAlign.center,
                         textDirection: TextDirection.rtl,
                         style: AppTextStyles.arabic(
-                          size: 32,
-                          lineHeight: 52,
-                          weight: FontWeight.w700,
-                          color: AppColors.accentLight,
-                          letterSpacing: 0.8,
-                        ).copyWith(
-                          shadows: [
-                            Shadow(
-                              color: AppColors.accentAt(0.7),
-                              blurRadius: 18,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
+                          size: 24,
+                          lineHeight: 46,
+                          weight: FontWeight.w400,
+                          color: palette.textPrimary,
                         ),
                       ),
-                    ),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: Opacity(
-                        opacity: 0.95,
-                        child: Text(
-                          '“$translation”',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.custom(
-                            size: 14,
-                            lineHeight: 20,
-                            weight: FontWeight.w500,
-                            style: FontStyle.italic,
-                            color: AppColors.accentLight,
-                          ).copyWith(
-                            shadows: [
-                              Shadow(
-                                color: AppColors.accentAt(0.5),
-                                blurRadius: 12,
-                              ),
-                            ],
-                          ),
+                      const SizedBox(height: 4),
+                      Text(
+                        translation,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.caption.copyWith(
+                          color: palette.textMuted,
+                          fontSize: 13,
+                          height: 1.45,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              if (nextArabic != null)
+              if (nextArabic != null) ...[
+                const SizedBox(height: 12),
                 Text(
                   nextArabic!,
                   textAlign: TextAlign.center,
                   textDirection: TextDirection.rtl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: dimStyle,
                 ),
+              ],
             ],
           ),
         ),

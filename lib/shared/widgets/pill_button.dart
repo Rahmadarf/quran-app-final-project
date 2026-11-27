@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
@@ -18,29 +19,26 @@ class PillButtonStyle {
   final Color? border;
   final Color foreground;
 
-  /// Aksi ayat: "Tafsir", "Ulang 3x".
   static final action = PillButtonStyle(
     background: AppColors.surface,
-    border: AppColors.borderAt(0.6),
+    border: AppColors.border,
     foreground: AppColors.accentLight,
   );
 
-  /// Pemilih di kartu surat: "Misyari Rasyid ⌄", "ABC".
   static final toolbar = PillButtonStyle(
-    background: AppColors.backgroundAt(0.7),
-    border: AppColors.borderAt(0.4),
-    foreground: AppColors.textPlayerTitle,
+    background: AppColors.surfaceStrong,
+    border: AppColors.border,
+    foreground: AppColors.textPrimary,
   );
 
-  /// Tombol "Mushaf" di header Fullscreen Player.
   static final highlight = PillButtonStyle(
-    background: AppColors.lightAt(0.15),
-    border: AppColors.lightAt(0.4),
+    background: AppColors.surfaceActive,
+    border: AppColors.accent,
     foreground: AppColors.accentLight,
   );
 }
 
-/// Tombol kapsul dengan ikon di kiri/kanan dan label.
+/// Tombol kapsul dual-mode dengan ikon di kiri/kanan dan label.
 class PillButton extends StatelessWidget {
   const PillButton({
     super.key,
@@ -52,16 +50,14 @@ class PillButton extends StatelessWidget {
     this.semanticLabel,
     this.style,
     this.height,
-    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    this.iconSize = 12,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    this.iconSize = 13,
     this.textStyle,
   }) : assert(label != null || leadingIcon != null || trailing != null);
 
   final String? label;
   final AppIcons? leadingIcon;
   final AppIcons? trailingIcon;
-
-  /// Widget bebas di ujung kanan (mis. titik "aktif" pada tombol ABC).
   final Widget? trailing;
   final VoidCallback? onTap;
   final String? semanticLabel;
@@ -73,7 +69,30 @@ class PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = style ?? PillButtonStyle.action;
+    final palette = AppThemeScope.paletteOf(context);
+    final PillButtonStyle s;
+    if (style == null || identical(style, PillButtonStyle.action)) {
+      s = PillButtonStyle(
+        background: palette.surface,
+        border: palette.border,
+        foreground: palette.accentLight,
+      );
+    } else if (identical(style, PillButtonStyle.toolbar)) {
+      s = PillButtonStyle(
+        background: palette.surfaceElevated,
+        border: palette.border,
+        foreground: palette.textPrimary,
+      );
+    } else if (identical(style, PillButtonStyle.highlight)) {
+      s = PillButtonStyle(
+        background: palette.accentSoft,
+        border: palette.borderAccent,
+        foreground: palette.accentLight,
+      );
+    } else {
+      s = style!;
+    }
+
     final children = <Widget>[
       if (leadingIcon != null) ...[
         AppIcon(leadingIcon!, size: iconSize, color: s.foreground),
@@ -85,8 +104,8 @@ class PillButton extends StatelessWidget {
             label!,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: (textStyle ?? AppTextStyles.micro)
-                .copyWith(color: s.foreground, letterSpacing: 0.25),
+            style: (textStyle ?? AppTextStyles.label)
+                .copyWith(color: s.foreground),
           ),
         ),
       if (trailingIcon != null) ...[

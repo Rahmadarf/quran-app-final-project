@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
 
@@ -13,14 +13,11 @@ class FilterChipItem {
 }
 
 enum FilterChipVariant {
-  /// Terpilih = latar terang, tulisan gelap tebal (tab Pustaka).
   light,
-
-  /// Terpilih = latar biru aksen (penyaring tafsir).
   accent,
 }
 
-/// Baris chip penyaring yang bisa digeser mendatar. Satu chip terpilih.
+/// Baris chip penyaring dual-mode sesuai Figma `Obsidian / FilterChip`.
 class FilterChipBar extends StatelessWidget {
   const FilterChipBar({
     super.key,
@@ -49,7 +46,6 @@ class FilterChipBar extends StatelessWidget {
             _Chip(
               item: items[i],
               selected: i == selectedIndex,
-              variant: variant,
               onTap: () => onSelected(i),
             ),
           ],
@@ -63,34 +59,19 @@ class _Chip extends StatelessWidget {
   const _Chip({
     required this.item,
     required this.selected,
-    required this.variant,
     required this.onTap,
   });
 
   final FilterChipItem item;
   final bool selected;
-  final FilterChipVariant variant;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final isLight = variant == FilterChipVariant.light;
-
-    final Color background;
-    final Color? border;
-    final Color foreground;
-    final FontWeight weight;
-    if (isLight) {
-      background = selected ? AppColors.accentLight : AppColors.surface;
-      border = null;
-      foreground = selected ? AppColors.onLight : AppColors.textMuted;
-      weight = selected ? FontWeight.w700 : FontWeight.w500;
-    } else {
-      background = selected ? AppColors.accent : AppColors.surfaceCard;
-      border = selected ? null : AppColors.borderAt(0.4);
-      foreground = selected ? AppColors.onAccent : AppColors.skyLabel;
-      weight = FontWeight.w500;
-    }
+    final palette = AppThemeScope.paletteOf(context);
+    final background = selected ? palette.accent : palette.surface;
+    final border = selected ? null : palette.border;
+    final foreground = selected ? palette.onAccent : palette.textMuted;
 
     return Semantics(
       selected: selected,
@@ -101,22 +82,24 @@ class _Chip extends StatelessWidget {
           color: background,
           borderColor: border,
           radius: 999,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 item.label,
-                style: AppTextStyles.label
-                    .copyWith(color: foreground, fontWeight: weight),
+                style: AppTextStyles.label.copyWith(
+                  color: foreground,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
               ),
               if (item.count != null) ...[
-                const SizedBox(width: 4),
-                Opacity(
-                  opacity: 0.7,
-                  child: Text(
-                    '${item.count}',
-                    style: AppTextStyles.micro,
+                const SizedBox(width: 5),
+                Text(
+                  '${item.count}',
+                  style: AppTextStyles.micro.copyWith(
+                    color: foreground.withValues(alpha: 0.75),
+                    letterSpacing: 0,
                   ),
                 ),
               ],
