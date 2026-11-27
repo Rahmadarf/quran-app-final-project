@@ -1,12 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
-import 'app_surface.dart';
+import '../../app/theme.dart';
 
-/// Bilah atas kaca dengan tiga slot: [leading], [center], [trailing].
-///
-/// Dipakai semua header: sapaan Beranda, Jelajah, Pustaka, Reader, dan
-/// Fullscreen Player. Tinggi isi 64 dp di luar area aman atas.
+/// Bilah atas bersih dual-mode dengan tiga slot: [leading], [center], [trailing].
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     super.key,
@@ -16,15 +12,12 @@ class AppTopBar extends StatelessWidget {
     this.centered = false,
     this.background,
     this.showBottomBorder = true,
-    this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
   });
 
   final Widget? leading;
   final Widget? center;
   final Widget? trailing;
-
-  /// `true` = [center] di tengah (Fullscreen Player); `false` = rata kiri
-  /// setelah [leading] dan mengisi sisa ruang.
   final bool centered;
   final Color? background;
   final bool showBottomBorder;
@@ -33,6 +26,7 @@ class AppTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.paddingOf(context).top;
+    final palette = AppThemeScope.paletteOf(context);
 
     final Widget row;
     if (centered) {
@@ -56,20 +50,16 @@ class AppTopBar extends StatelessWidget {
       );
     }
 
-    return AppSurface(
-      color: background ?? AppColors.backgroundAt(0.9),
-      blur: 24,
-      radius: 0,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: showBottomBorder
-              ? Border(bottom: BorderSide(color: AppColors.borderAt(0.4)))
-              : null,
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(top: topInset),
-          child: Padding(padding: padding, child: row),
-        ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: background ?? palette.background,
+        border: showBottomBorder
+            ? Border(bottom: BorderSide(color: palette.border))
+            : null,
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(top: topInset),
+        child: Padding(padding: padding, child: row),
       ),
     );
   }

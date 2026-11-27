@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'pill_button.dart';
 
-/// Keadaan kosong: ikon, judul, satu kalimat, dan satu tombol (docs/07 §4).
+/// Keadaan kosong dual-mode: ikon, judul, satu kalimat, dan satu tombol.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -25,6 +25,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -33,25 +34,25 @@ class EmptyState extends StatelessWidget {
           children: [
             AppSurface(
               shape: BoxShape.circle,
-              color: AppColors.surface,
-              borderColor: AppColors.borderAt(0.5),
-              width: 72,
-              height: 72,
+              color: palette.surface,
+              borderColor: palette.border,
+              width: 68,
+              height: 68,
               child: Center(
-                child: AppIcon(icon, size: 28, color: AppColors.accentLight),
+                child: AppIcon(icon, size: 26, color: palette.accentLight),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: AppTextStyles.cardHeading,
+              style: AppTextStyles.heading.copyWith(color: palette.textPrimary),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: AppTextStyles.body,
+              style: AppTextStyles.body.copyWith(color: palette.textMuted),
             ),
             if (actionLabel != null) ...[
               const SizedBox(height: 16),

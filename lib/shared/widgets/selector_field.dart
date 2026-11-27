@@ -1,13 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
 
-/// Kolom pemilih bergaya dropdown: label kecil, nilai, dan panah ke bawah.
-/// Mengetuknya membuka panel pilihan (bukan menu bawaan).
+/// Kolom pemilih bergaya dropdown dual-mode.
 class SelectorField extends StatelessWidget {
   const SelectorField({
     super.key,
@@ -22,11 +21,13 @@ class SelectorField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Pressable(
       onTap: onTap,
       semanticLabel: '$label: $value',
       child: AppSurface(
-        color: AppColors.surfaceCard,
+        color: palette.surfaceElevated,
+        borderColor: palette.border,
         radius: 10,
         height: 54,
         padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
@@ -45,7 +46,7 @@ class SelectorField extends StatelessWidget {
                       size: 10,
                       lineHeight: 15,
                       weight: FontWeight.w500,
-                      color: AppColors.sheetMuted,
+                      color: palette.textMuted,
                     ),
                   ),
                   Text(
@@ -56,18 +57,18 @@ class SelectorField extends StatelessWidget {
                       size: 14,
                       lineHeight: 20,
                       weight: FontWeight.w600,
-                      color: AppColors.sheetText,
+                      color: palette.textPrimary,
                     ),
                   ),
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 8, bottom: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 4),
               child: AppIcon(
                 AppIcons.chevronDown,
                 size: 9,
-                color: AppColors.sheetIcon,
+                color: palette.textMuted,
               ),
             ),
           ],

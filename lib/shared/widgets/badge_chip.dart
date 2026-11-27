@@ -1,83 +1,51 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 
-/// Lencana kecil: "Jumat", "OFFLINE", "Surah ke-1", jumlah item.
+enum _BadgeKind { pill, tag, status, count, withIcon }
+
+/// Lencana kecil dual-mode: "Jumat", "OFFLINE", "Surah ke-1", jumlah item.
 class BadgeChip extends StatelessWidget {
-  const BadgeChip._({
+  const BadgeChip._(
+    this._kind, {
     super.key,
     required this.label,
-    required this.color,
-    required this.borderColor,
-    required this.radius,
-    required this.padding,
-    required this.textStyle,
+    this.textStyle,
     this.icon,
     this.iconColor,
   });
 
-  /// Kapsul bergaris (mis. "Jumat", "QS. Ar-Rahman : 13").
   factory BadgeChip.pill(String label, {Key? key, TextStyle? textStyle}) =>
       BadgeChip._(
+        _BadgeKind.pill,
         key: key,
         label: label,
-        color: AppColors.surfaceStrong,
-        borderColor: AppColors.accentAt(0.4),
-        radius: 999,
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-        textStyle: textStyle ?? AppTextStyles.badge,
+        textStyle: textStyle,
       );
 
-  /// Label persegi kecil (mis. "Surah ke-1", "Ayat Agung").
   factory BadgeChip.tag(String label, {Key? key, TextStyle? textStyle}) =>
       BadgeChip._(
+        _BadgeKind.tag,
         key: key,
         label: label,
-        color: AppColors.accentAt(0.2),
-        borderColor: null,
-        radius: 4,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        textStyle: textStyle ??
-            AppTextStyles.micro.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.accentLight,
-            ),
+        textStyle: textStyle,
       );
 
-  /// Label status tebal (mis. "OFFLINE").
   factory BadgeChip.status(String label, {Key? key}) => BadgeChip._(
+        _BadgeKind.status,
         key: key,
         label: label,
-        color: AppColors.surfaceStrong,
-        borderColor: null,
-        radius: 4,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        textStyle: AppTextStyles.badge.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.225,
-        ),
       );
 
-  /// Angka penghitung di samping judul (mis. "4").
   factory BadgeChip.count(String label, {Key? key}) => BadgeChip._(
+        _BadgeKind.count,
         key: key,
         label: label,
-        color: AppColors.surface,
-        borderColor: null,
-        radius: 999,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        textStyle: AppTextStyles.custom(
-          size: 11,
-          lineHeight: 16.5,
-          weight: FontWeight.w600,
-          color: AppColors.skyLabel,
-        ),
       );
 
-  /// Kapsul dengan ikon di kiri (mis. "14 mnt audio" tanpa latar).
   factory BadgeChip.withIcon(
     String label,
     AppIcons icon, {
@@ -85,32 +53,80 @@ class BadgeChip extends StatelessWidget {
     Color? iconColor,
   }) =>
       BadgeChip._(
+        _BadgeKind.withIcon,
         key: key,
         label: label,
-        color: AppColors.lightAt(0.15),
-        borderColor: AppColors.lightAt(0.4),
-        radius: 999,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        textStyle: AppTextStyles.micro.copyWith(color: AppColors.accentLight),
         icon: icon,
-        iconColor: iconColor ?? AppColors.accentLight,
+        iconColor: iconColor,
       );
 
+  final _BadgeKind _kind;
   final String label;
-  final Color color;
-  final Color? borderColor;
-  final double radius;
-  final EdgeInsets padding;
-  final TextStyle textStyle;
+  final TextStyle? textStyle;
   final AppIcons? icon;
   final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final text = Text(label, style: textStyle, maxLines: 1);
+    final palette = AppThemeScope.paletteOf(context);
+
+    final Color bg;
+    final Color? border;
+    final double radius;
+    final EdgeInsets padding;
+    final TextStyle style;
+    final Color effectiveIconColor;
+
+    switch (_kind) {
+      case _BadgeKind.pill:
+        bg = palette.accentSoft;
+        border = palette.borderAccent;
+        radius = 999;
+        padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 3);
+        style = textStyle ??
+            AppTextStyles.badge.copyWith(color: palette.accentLight);
+        effectiveIconColor = iconColor ?? palette.accentLight;
+      case _BadgeKind.tag:
+        bg = palette.accentSoft;
+        border = null;
+        radius = 6;
+        padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 3);
+        style = textStyle ??
+            AppTextStyles.micro.copyWith(
+              fontWeight: FontWeight.w700,
+              color: palette.accentLight,
+            );
+        effectiveIconColor = iconColor ?? palette.accentLight;
+      case _BadgeKind.status:
+        bg = palette.accentSoft;
+        border = null;
+        radius = 6;
+        padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 2);
+        style = AppTextStyles.badge.copyWith(
+          fontWeight: FontWeight.w700,
+          color: palette.accentLight,
+        );
+        effectiveIconColor = iconColor ?? palette.accentLight;
+      case _BadgeKind.count:
+        bg = palette.surface;
+        border = palette.border;
+        radius = 999;
+        padding = const EdgeInsets.symmetric(horizontal: 9, vertical: 2);
+        style = AppTextStyles.micro.copyWith(color: palette.textMuted);
+        effectiveIconColor = iconColor ?? palette.textMuted;
+      case _BadgeKind.withIcon:
+        bg = palette.accentSoft;
+        border = palette.borderAccent;
+        radius = 999;
+        padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 4);
+        style = AppTextStyles.micro.copyWith(color: palette.accentLight);
+        effectiveIconColor = iconColor ?? palette.accentLight;
+    }
+
+    final text = Text(label, style: style, maxLines: 1);
     return AppSurface(
-      color: color,
-      borderColor: borderColor,
+      color: bg,
+      borderColor: border,
       radius: radius,
       padding: padding,
       child: icon == null
@@ -118,7 +134,7 @@ class BadgeChip extends StatelessWidget {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AppIcon(icon!, size: 12, color: iconColor!),
+                AppIcon(icon!, size: 12, color: effectiveIconColor),
                 const SizedBox(width: 6),
                 text,
               ],

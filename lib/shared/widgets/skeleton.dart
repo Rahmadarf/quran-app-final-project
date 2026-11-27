@@ -1,8 +1,9 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../app/app_colors.dart';
+import '../../app/theme.dart';
 
-/// Kerangka pemuatan berbentuk persegi panjang membulat (docs/07 §0.4, §4).
+/// Kerangka pemuatan dual-mode dengan efek kilau halus (`flutter_animate`).
 class SkeletonBox extends StatelessWidget {
   const SkeletonBox({
     super.key,
@@ -17,17 +18,31 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ExcludeSemantics(
+    final palette = AppThemeScope.paletteOf(context);
+    final disableAnim = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+    final box = ExcludeSemantics(
       child: SizedBox(
         width: width,
         height: height,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surfaceAt(0.55),
+            color: palette.surfaceElevated,
             borderRadius: BorderRadius.circular(radius),
           ),
         ),
       ),
     );
+
+    if (disableAnim) return box;
+
+    return box
+        .animate(onPlay: (c) => c.repeat())
+        .shimmer(
+          duration: 1400.ms,
+          color: palette.isDark
+              ? const Color(0x14FFFFFF)
+              : const Color(0x66FFFFFF),
+        );
   }
 }

@@ -1,10 +1,9 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
-import 'badge_chip.dart';
 import 'icon_circle_button.dart';
 import 'pressable.dart';
 
@@ -14,44 +13,40 @@ class MediaThumb extends StatelessWidget {
     super.key,
     this.image,
     this.icon,
-    this.size = 56,
+    this.size = 48,
     this.radius = 8,
     this.overlayIcon,
     this.background,
   }) : assert(image != null || icon != null);
 
   final ImageProvider? image;
-
-  /// Dipakai bila tidak ada gambar (mis. ikon podcast di atas gradasi biru).
   final AppIcons? icon;
   final double size;
   final double radius;
-
-  /// Ikon kecil di pojok (mis. penanda "terunduh").
   final AppIcons? overlayIcon;
   final Gradient? background;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return AppSurface(
       width: size,
       height: size,
       radius: radius,
-      color: AppColors.surface,
-      gradient: image == null
-          ? (background ??
-              const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppColors.surfaceStrong, AppColors.accent],
-              ))
-          : null,
+      color: palette.surfaceElevated,
+      borderColor: palette.border,
+      gradient: image == null ? background : null,
       child: Stack(
         fit: StackFit.expand,
         children: [
           if (image != null)
             Image(
-              image: image!,
+              image: ResizeImage.resizeIfNeeded(
+                (size * 3).round(),
+                null,
+                image!,
+              ),
               fit: BoxFit.cover,
               excludeFromSemantics: true,
             )
@@ -59,8 +54,8 @@ class MediaThumb extends StatelessWidget {
             Center(
               child: AppIcon(
                 icon!,
-                size: size * 0.43,
-                color: AppColors.accentLight,
+                size: size * 0.42,
+                color: palette.accentLight,
               ),
             ),
           if (overlayIcon != null)
@@ -70,7 +65,7 @@ class MediaThumb extends StatelessWidget {
               child: AppIcon(
                 overlayIcon!,
                 size: 11,
-                color: AppColors.accentLight,
+                color: palette.accentLight,
               ),
             ),
         ],
@@ -79,7 +74,7 @@ class MediaThumb extends StatelessWidget {
   }
 }
 
-/// Baris daftar playlist: gambar, judul (+ penanda), keterangan, tagar, menu.
+/// Baris daftar playlist zero-card hairline sesuai Figma `Obsidian / PlaylistRow`.
 class MediaRow extends StatelessWidget {
   const MediaRow({
     super.key,
@@ -97,88 +92,97 @@ class MediaRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? tagline;
-
-  /// Ikon hati biru di samping judul.
   final bool favorite;
-
-  /// Lencana "OFFLINE" di samping judul.
   final bool offline;
   final VoidCallback? onTap;
   final VoidCallback? onMore;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: '$title, $subtitle',
       pressedScale: 0.99,
-      child: AppSurface(
-        color: AppColors.surfaceDeep,
-        borderColor: AppColors.borderAt(0.2),
-        radius: 12,
-        padding: const EdgeInsets.all(13),
-        child: Row(
-          children: [
-            leading,
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: palette.border)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              leading,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.rowTitle
+                                .copyWith(color: palette.textPrimary),
+                          ),
+                        ),
+                        if (favorite) ...[
+                          const SizedBox(width: 6),
+                          AppIcon(
+                            AppIcons.heartFilled,
+                            size: 13,
+                            color: palette.accent,
+                          ),
+                        ],
+                        if (offline) ...[
+                          const SizedBox(width: 6),
+                          AppIcon(
+                            AppIcons.offlineDone,
+                            size: 15,
+                            color: palette.accent,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.caption
+                          .copyWith(color: palette.textMuted),
+                    ),
+                    if (tagline != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          title,
+                          tagline!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.rowTitle,
+                          style: AppTextStyles.caption.copyWith(
+                            color: palette.textSubtle,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
-                      if (favorite) ...[
-                        const SizedBox(width: 6),
-                        const AppIcon(
-                          AppIcons.heartFilled,
-                          size: 12,
-                          color: AppColors.accent,
-                        ),
-                      ],
-                      if (offline) ...[
-                        const SizedBox(width: 6),
-                        BadgeChip.status('OFFLINE'),
-                      ],
-                    ],
-                  ),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.label
-                        .copyWith(color: AppColors.textFaint),
-                  ),
-                  if (tagline != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        tagline!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.micro,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (onMore != null)
-              IconCircleButton(
-                icon: AppIcons.moreVert,
-                semanticLabel: 'Opsi $title',
-                size: 32,
-                iconSize: 14,
-                iconColor: AppColors.placeholder,
-                onTap: onMore,
-              ),
-          ],
+              if (onMore != null)
+                IconCircleButton(
+                  icon: AppIcons.moreVert,
+                  semanticLabel: 'Opsi $title',
+                  size: 32,
+                  iconSize: 14,
+                  iconColor: palette.textMuted,
+                  onTap: onMore,
+                ),
+            ],
+          ),
         ),
       ),
     );

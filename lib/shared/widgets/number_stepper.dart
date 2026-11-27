@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_surface.dart';
 import 'pressable.dart';
 
@@ -27,6 +27,7 @@ class NumberStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Semantics(
       container: true,
       label: 'Nilai $value dari $min sampai $max',
@@ -45,7 +46,8 @@ class NumberStepper extends StatelessWidget {
                   size: 42,
                   lineHeight: 61,
                   weight: FontWeight.w600,
-                  color: AppColors.sheetText,
+                  color: palette.textPrimary,
+                  tabular: true,
                 ),
               ),
             ),
@@ -74,13 +76,15 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Pressable(
       onTap: onTap,
       semanticLabel: label,
       child: Opacity(
         opacity: onTap == null ? 0.4 : 1,
         child: AppSurface(
-          color: AppColors.surfaceCard,
+          color: palette.surfaceElevated,
+          borderColor: palette.border,
           radius: 12,
           width: 64,
           height: 64,
@@ -91,7 +95,7 @@ class _StepButton extends StatelessWidget {
                 size: 22,
                 lineHeight: 26,
                 weight: FontWeight.w600,
-                color: AppColors.sheetText,
+                color: palette.textPrimary,
               ),
             ),
           ),

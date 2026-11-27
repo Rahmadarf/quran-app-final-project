@@ -1,9 +1,8 @@
 import 'package:flutter/widgets.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
-import 'app_icon.dart';
-import 'app_surface.dart';
+import '../../app/theme.dart';
 import 'pressable.dart';
 
 class BottomNavItem {
@@ -14,11 +13,12 @@ class BottomNavItem {
   });
 
   final String label;
-  final AppIcons icon;
-  final AppIcons activeIcon;
+  final IconData icon;
+  final IconData activeIcon;
 }
 
-/// Bilah navigasi bawah 4 tab dengan latar kaca (Beranda, Quran, Jelajah, Pustaka).
+/// Bilah navigasi bawah 4 tab dual-mode (Beranda, Al-Qur'an, Jelajah, Pustaka)
+/// menggunakan Phosphor Icons.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,
@@ -27,27 +27,27 @@ class AppBottomNavBar extends StatelessWidget {
     required this.onChanged,
   });
 
-  /// Empat tab bawaan sesuai Figma.
+  /// Empat tab bawaan sesuai Figma Redesign v2.
   static const defaultItems = [
     BottomNavItem(
       label: 'Beranda',
-      icon: AppIcons.home,
-      activeIcon: AppIcons.homeFilled,
+      icon: PhosphorIconsRegular.house,
+      activeIcon: PhosphorIconsFill.house,
     ),
     BottomNavItem(
-      label: 'Quran',
-      icon: AppIcons.quran,
-      activeIcon: AppIcons.quran,
+      label: "Al-Qur'an",
+      icon: PhosphorIconsRegular.bookOpenText,
+      activeIcon: PhosphorIconsFill.bookOpenText,
     ),
     BottomNavItem(
       label: 'Jelajah',
-      icon: AppIcons.compass,
-      activeIcon: AppIcons.compassFilled,
+      icon: PhosphorIconsRegular.compass,
+      activeIcon: PhosphorIconsFill.compass,
     ),
     BottomNavItem(
       label: 'Pustaka',
-      icon: AppIcons.library,
-      activeIcon: AppIcons.libraryFilled,
+      icon: PhosphorIconsRegular.books,
+      activeIcon: PhosphorIconsFill.books,
     ),
   ];
 
@@ -58,38 +58,29 @@ class AppBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final palette = AppThemeScope.paletteOf(context);
 
-    return AppSurface(
-      color: AppColors.backgroundAt(0.95),
-      blur: 24,
-      radius: 0,
-      shadows: const [
-        BoxShadow(
-          color: Color(0xB3000D29), // rgba(0,13,41,0.7)
-          blurRadius: 24,
-          offset: Offset(0, -4),
-        ),
-      ],
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.borderAt(0.5))),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: bottomInset),
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                for (var i = 0; i < items.length; i++)
-                  Expanded(
-                    child: _NavButton(
-                      item: items[i],
-                      selected: i == currentIndex,
-                      onTap: () => onChanged(i),
-                    ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        border: Border(top: BorderSide(color: palette.border)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _NavButton(
+                    item: items[i],
+                    selected: i == currentIndex,
+                    palette: palette,
+                    onTap: () => onChanged(i),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ),
@@ -101,16 +92,18 @@ class _NavButton extends StatelessWidget {
   const _NavButton({
     required this.item,
     required this.selected,
+    required this.palette,
     required this.onTap,
   });
 
   final BottomNavItem item;
   final bool selected;
+  final AppThemePalette palette;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.accentLight : AppColors.textMuted;
+    final color = selected ? palette.accentLight : palette.textMuted;
     return Semantics(
       selected: selected,
       child: Pressable(
@@ -121,21 +114,23 @@ class _NavButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              height: 20,
+              height: 24,
               child: Center(
-                child: AppIcon(
+                child: Icon(
                   selected ? item.activeIcon : item.icon,
-                  size: 18,
+                  size: 22,
                   color: color,
                 ),
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               item.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTextStyles.navLabel.copyWith(
                 color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],

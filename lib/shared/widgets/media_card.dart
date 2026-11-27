@@ -2,16 +2,13 @@ import 'package:flutter/widgets.dart';
 
 import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'app_surface.dart';
 import 'badge_chip.dart';
 import 'pressable.dart';
 
-/// Kartu sampul persegi dengan judul di bawahnya (rak Beranda).
-///
-/// Dua gaya isi sampul:
-/// - surat: [arabicTitle] di kiri-bawah dan [pillLabel] opsional di kanan-bawah;
-/// - kurasi: [badgeIcon] di kiri-atas dan [overlayLabel] huruf kapital di bawah.
+/// Kartu sampul persegi dual-mode sesuai Figma `Obsidian / MediaCard`.
 class MediaCard extends StatelessWidget {
   const MediaCard({
     super.key,
@@ -24,7 +21,7 @@ class MediaCard extends StatelessWidget {
     this.overlayLabel,
     this.overlayLabelColor = AppColors.accentLight,
     this.imageAlignment = Alignment.center,
-    this.width = 144,
+    this.width = 148,
     this.onTap,
   });
 
@@ -40,10 +37,11 @@ class MediaCard extends StatelessWidget {
   final double width;
   final VoidCallback? onTap;
 
-  static const double coverHeight = 142;
+  static const double coverHeight = 148;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     final curated = badgeIcon != null || overlayLabel != null;
 
     return Pressable(
@@ -55,18 +53,10 @@ class MediaCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppSurface(
-              color: AppColors.surface,
-              borderColor: AppColors.borderAt(0.6),
-              radius: 16,
-              height: coverHeight + 2,
-              shadows: const [
-                BoxShadow(
-                  color: AppColors.shadow,
-                  blurRadius: 6,
-                  offset: Offset(0, 4),
-                  spreadRadius: -1,
-                ),
-              ],
+              color: palette.surface,
+              borderColor: palette.border,
+              radius: 12,
+              height: coverHeight,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -80,24 +70,20 @@ class MediaCard extends StatelessWidget {
                     alignment: imageAlignment,
                     excludeFromSemantics: true,
                   ),
-                  DecoratedBox(
+                  const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
-                          curated
-                              ? const Color(0xF2000D29) // 0.95
-                              : const Color(0xE6000D29), // 0.9
-                          curated
-                              ? AppColors.surface.withValues(alpha: 0)
-                              : AppColors.background.withValues(alpha: 0),
+                          Color(0xCC0A0B0D),
+                          Color(0x0D0A0B0D),
                         ],
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     child: curated ? _curatedContent() : _surahContent(),
                   ),
                 ],
@@ -109,7 +95,8 @@ class MediaCard extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.cardTitle,
+                style: AppTextStyles.cardTitle
+                    .copyWith(color: palette.textPrimary),
               ),
             ),
             Padding(
@@ -118,7 +105,7 @@ class MediaCard extends StatelessWidget {
                 subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption,
+                style: AppTextStyles.caption.copyWith(color: palette.textMuted),
               ),
             ),
           ],
@@ -140,10 +127,11 @@ class MediaCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTextStyles.arabic(
-                size: 16,
-                lineHeight: 16,
-                weight: FontWeight.w700,
-                color: AppColors.accentLight,
+                size: 20,
+                lineHeight: 28,
+                weight: FontWeight.w400,
+                // Tetap putih terang di atas scrim foto gelap pada kedua mode.
+                color: const Color(0xFFF8F9FA),
               ),
             ),
           ),
@@ -160,16 +148,15 @@ class MediaCard extends StatelessWidget {
         if (badgeIcon != null)
           AppSurface(
             shape: BoxShape.circle,
-            color: AppColors.surfaceAt(0.8),
-            borderColor: AppColors.accentAt(0.4),
-            blur: 12,
-            width: 24,
-            height: 24,
+            color: const Color(0xCC131519),
+            borderColor: const Color(0x33FFFFFF),
+            width: 28,
+            height: 28,
             child: Center(
               child: AppIcon(
                 badgeIcon!,
-                size: 12,
-                color: AppColors.accentLight,
+                size: 13,
+                color: const Color(0xFF34D399),
               ),
             ),
           )
@@ -179,8 +166,8 @@ class MediaCard extends StatelessWidget {
           Text(
             overlayLabel!,
             style: AppTextStyles.micro.copyWith(
-              color: overlayLabelColor,
-              letterSpacing: 0.25,
+              color: const Color(0xFFF8F9FA),
+              letterSpacing: 0.6,
             ),
           ),
       ],

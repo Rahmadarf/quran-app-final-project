@@ -1,18 +1,12 @@
 import 'package:flutter/widgets.dart';
 
-import '../../app/app_colors.dart';
 import '../../app/app_text_styles.dart';
+import '../../app/theme.dart';
 import 'app_icon.dart';
 import 'badge_chip.dart';
-import 'icon_circle_button.dart';
 import 'pressable.dart';
 
-/// Judul bagian dengan aksi "Lihat semua" di kanan.
-///
-/// - [accentBar]: garis biru kecil di kiri judul (layar Jelajah).
-/// - [count]: angka penghitung di samping judul (layar Pustaka).
-/// - [trailingLabel]: teks aksi dengan panah; tanpa itu dan bila
-///   [onChevronTap] diisi, tampil tombol panah bulat (Beranda).
+/// Judul bagian dual-mode dengan aksi "Lihat semua" di kanan.
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,
@@ -32,8 +26,6 @@ class SectionHeader extends StatelessWidget {
   final String? subtitle;
   final int? count;
   final String? trailingLabel;
-
-  /// Keterangan polos di kanan tanpa panah dan tanpa aksi (mis. "6 Kategori").
   final String? trailingNote;
   final VoidCallback? onTrailingTap;
   final VoidCallback? onChevronTap;
@@ -43,23 +35,29 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = titleStyle ??
-        (accentBar ? AppTextStyles.sectionTitle : AppTextStyles.heading);
+    final palette = AppThemeScope.paletteOf(context);
+    final style = (titleStyle ?? AppTextStyles.heading)
+        .copyWith(color: palette.textPrimary);
 
     Widget? trailing;
-    if (trailingLabel != null) {
+    if (trailingLabel != null || onChevronTap != null) {
+      final label = trailingLabel ?? 'Lihat semua';
       trailing = Pressable(
-        onTap: onTrailingTap,
-        semanticLabel: trailingLabel,
+        onTap: onTrailingTap ?? onChevronTap,
+        semanticLabel: label,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(trailingLabel!, style: AppTextStyles.labelStrong),
-            const SizedBox(width: 2),
-            const AppIcon(
+            Text(
+              label,
+              style: AppTextStyles.labelStrong
+                  .copyWith(color: palette.accentLight),
+            ),
+            const SizedBox(width: 4),
+            AppIcon(
               AppIcons.chevronRight,
-              size: 8,
-              color: AppColors.accentLight,
+              size: 10,
+              color: palette.accentLight,
             ),
           ],
         ),
@@ -67,16 +65,7 @@ class SectionHeader extends StatelessWidget {
     } else if (trailingNote != null) {
       trailing = Text(
         trailingNote!,
-        style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
-      );
-    } else if (onChevronTap != null) {
-      trailing = IconCircleButton(
-        icon: AppIcons.chevronRight,
-        semanticLabel: 'Lihat semua $title',
-        size: 28,
-        iconSize: 10,
-        iconColor: AppColors.textMuted,
-        onTap: onChevronTap,
+        style: AppTextStyles.label.copyWith(color: palette.textMuted),
       );
     }
 
@@ -85,19 +74,6 @@ class SectionHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (accentBar) ...[
-            const SizedBox(
-              width: 6,
-              height: 16,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.all(Radius.circular(999)),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +93,14 @@ class SectionHeader extends StatelessWidget {
                   ],
                 ),
                 if (subtitle != null)
-                  Text(subtitle!, style: AppTextStyles.label),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      subtitle!,
+                      style: AppTextStyles.caption
+                          .copyWith(color: palette.textMuted),
+                    ),
+                  ),
               ],
             ),
           ),
