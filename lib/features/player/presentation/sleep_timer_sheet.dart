@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/pressable.dart';
@@ -85,12 +85,13 @@ class _SleepOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Pressable(
       onTap: onTap,
       semanticLabel: label,
       child: AppSurface(
-        color: selected ? AppColors.surfaceStrong : AppColors.surfaceCard,
-        borderColor: selected ? AppColors.accent : null,
+        color: selected ? palette.surfaceActive : palette.surfaceElevated,
+        borderColor: selected ? palette.accent : palette.border,
         radius: 12,
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -103,10 +104,10 @@ class _SleepOptionTile extends StatelessWidget {
               lineHeight: 18,
               weight: FontWeight.w600,
               color: destructive
-                  ? const Color(0xFFF87171)
+                  ? palette.danger
                   : selected
-                      ? AppColors.accentLight
-                      : AppColors.sheetText,
+                      ? palette.accentLight
+                      : palette.textPrimary,
             ),
           ),
         ),

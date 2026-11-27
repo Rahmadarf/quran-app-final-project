@@ -1,19 +1,14 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/equalizer_bars.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/pill_button.dart';
 
-/// Kartu satu ayat di Reader.
-///
-/// Keadaan biasa: nomor, aksi putar + penanda, teks Arab, transliterasi,
-/// terjemahan. Keadaan [active] (sedang diputar/disorot SyncEngine) menambah
-/// cahaya di tepi, penanda "Memutar", dan baris aksi (tafsir, ulang, salin,
-/// bagikan). Teks Arab, transliterasi, dan terjemahan ditampilkan apa adanya.
+/// Kartu satu ayat di Reader dual-mode sesuai Figma `Obsidian / AyahTile`.
 class AyahTile extends StatelessWidget {
   const AyahTile({
     super.key,
@@ -26,7 +21,7 @@ class AyahTile extends StatelessWidget {
     this.bookmarked = false,
     this.playbackLabel,
     this.repeatLabel,
-    this.arabicFontSize = 22,
+    this.arabicFontSize = 26,
     this.onPlay,
     this.onBookmark,
     this.onTafsir,
@@ -39,18 +34,10 @@ class AyahTile extends StatelessWidget {
   final String arabic;
   final String translation;
   final String? transliteration;
-
-  /// Ayat yang sedang disorot.
   final bool active;
-
-  /// Audio ayat ini sedang berjalan (ikon jeda dan batang equalizer).
   final bool playing;
   final bool bookmarked;
-
-  /// Mis. "Memutar 00:03". Hanya tampil saat [active].
   final String? playbackLabel;
-
-  /// Mis. "Ulang 3x". Bila null, tombol ulang tidak tampil.
   final String? repeatLabel;
   final double arabicFontSize;
   final VoidCallback? onPlay;
@@ -62,12 +49,14 @@ class AyahTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _header(),
+        _header(palette),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: SizedBox(
             width: double.infinity,
             child: Text(
@@ -76,37 +65,30 @@ class AyahTile extends StatelessWidget {
               textDirection: TextDirection.rtl,
               style: AppTextStyles.arabic(
                 size: arabicFontSize,
-                lineHeight: arabicFontSize * 2,
-                weight: active ? FontWeight.w700 : FontWeight.w400,
-                color: active ? AppColors.accentLight : AppColors.textPrimary,
+                lineHeight: arabicFontSize * 2.15,
+                weight: FontWeight.w400,
+                color: palette.textPrimary,
               ),
             ),
           ),
         ),
         if (transliteration != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 2),
+            padding: const EdgeInsets.only(bottom: 4),
             child: Text(
               transliteration!,
-              style: AppTextStyles.custom(
-                size: 12,
-                lineHeight: 16,
-                weight: active ? FontWeight.w600 : FontWeight.w500,
-                color: active ? AppColors.accentLight : AppColors.skyLabel,
-                letterSpacing: 0.3,
+              style: AppTextStyles.label.copyWith(
+                color: palette.accentLight,
               ),
             ),
           ),
         Text(
           translation,
-          style: AppTextStyles.custom(
-            size: 14,
-            lineHeight: 20,
-            weight: active ? FontWeight.w500 : FontWeight.w400,
-            color: active ? AppColors.textPrimary : AppColors.textSubtle,
+          style: AppTextStyles.body.copyWith(
+            color: active ? palette.textPrimary : palette.textMuted,
           ),
         ),
-        if (active) _footer(),
+        if (active) _footer(palette),
       ],
     );
 
@@ -116,133 +98,103 @@ class AyahTile extends StatelessWidget {
       label: 'Ayat $number',
       child: active
           ? AppSurface(
-              color: AppColors.surfaceActive,
-              borderColor: AppColors.lightAt(0.3),
-              radius: 12,
-              shadows: [
-                const BoxShadow(color: AppColors.accent, spreadRadius: 1),
-                BoxShadow(
-                  color: AppColors.accentAt(0.28),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 4,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.accentAt(0.2),
-                            AppColors.accentLight,
-                            AppColors.accentAt(0.2),
-                          ],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.lightAt(0.6),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(padding: const EdgeInsets.all(17), child: body),
-                ],
-              ),
-            )
-          : AppSurface(
-              color: AppColors.surfaceVerse,
-              borderColor: AppColors.borderAt(0.3),
-              radius: 12,
+              color: palette.accentSoft,
+              borderColor: palette.borderAccent,
+              radius: 16,
               padding: const EdgeInsets.all(16),
               child: body,
+            )
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: palette.border)),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
+                child: body,
+              ),
             ),
     );
   }
 
-  Widget _header() {
+  Widget _header(AppThemePalette palette) {
     return Row(
       children: [
         AppSurface(
-          shape: BoxShape.circle,
-          width: 28,
-          height: 28,
-          color: active ? AppColors.accentLight : AppColors.surface,
-          child: Center(
-            child: Text(
-              '$number',
-              style: AppTextStyles.micro.copyWith(
-                fontWeight: FontWeight.w700,
-                color: active ? const Color(0xFF001F26) : AppColors.accentLight,
-                letterSpacing: 0,
+          color: active ? palette.accent : palette.surface,
+          borderColor: active ? null : palette.border,
+          radius: 999,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (active && playing) ...[
+                EqualizerBars(playing: true, color: palette.onAccent, height: 10),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                active && playbackLabel != null
+                    ? '$number · ${playbackLabel!.toUpperCase()}'
+                    : '$number',
+                style: AppTextStyles.micro.copyWith(
+                  color: active ? palette.onAccent : palette.textMuted,
+                  letterSpacing: 0.6,
+                ),
               ),
-            ),
+            ],
           ),
         ),
-        if (active && playbackLabel != null) ...[
-          const SizedBox(width: 8),
-          AppSurface(
-            color: AppColors.surface,
-            borderColor: AppColors.accentAt(0.4),
-            radius: 999,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                EqualizerBars(playing: playing),
-                const SizedBox(width: 4),
-                Text(
-                  playbackLabel!,
-                  style: AppTextStyles.micro.copyWith(
-                    color: AppColors.accentLight,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         const Spacer(),
         IconCircleButton(
-          icon: playing ? AppIcons.pause : AppIcons.playOutline,
+          icon: playing ? AppIcons.pause : AppIcons.play,
           semanticLabel: playing ? 'Jeda ayat $number' : 'Putar ayat $number',
-          style: active ? IconCircleStyle.primary : IconCircleStyle.ghost,
+          style: IconCircleStyle.ghost,
           size: 32,
-          iconSize: active ? 13 : 16,
-          iconColor: active ? AppColors.onLight : AppColors.textMuted,
+          iconSize: 15,
+          iconColor: active ? palette.accentLight : palette.textMuted,
           onTap: onPlay,
         ),
-        const SizedBox(width: 4),
+        if (!active && onTafsir != null)
+          IconCircleButton(
+            icon: AppIcons.tafsir,
+            semanticLabel: 'Tafsir ayat $number',
+            size: 32,
+            iconSize: 15,
+            iconColor: palette.textMuted,
+            onTap: onTafsir,
+          ),
         IconCircleButton(
           icon: bookmarked ? AppIcons.bookmarkFilled : AppIcons.bookmark,
           semanticLabel: bookmarked
               ? 'Hapus penanda ayat $number'
               : 'Tandai ayat $number',
           size: 32,
-          iconSize: 14,
-          iconColor: bookmarked ? AppColors.accentLight : AppColors.textMuted,
+          iconSize: 15,
+          iconColor: bookmarked ? palette.accentLight : palette.textMuted,
           onTap: onBookmark,
         ),
+        if (!active && onShare != null)
+          IconCircleButton(
+            icon: AppIcons.share,
+            semanticLabel: 'Bagikan ayat $number',
+            size: 32,
+            iconSize: 15,
+            iconColor: palette.textMuted,
+            onTap: onShare,
+          ),
       ],
     );
   }
 
-  Widget _footer() {
+  Widget _footer(AppThemePalette palette) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: 12),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.borderAt(0.5))),
+          border: Border(top: BorderSide(color: palette.border)),
         ),
         child: Padding(
-          padding: const EdgeInsets.only(top: 9),
+          padding: const EdgeInsets.only(top: 10),
           child: Row(
             children: [
               PillButton(
@@ -265,16 +217,16 @@ class AyahTile extends StatelessWidget {
                 icon: AppIcons.copy,
                 semanticLabel: 'Salin ayat $number',
                 size: 32,
-                iconSize: 13,
-                iconColor: AppColors.textFaint,
+                iconSize: 14,
+                iconColor: palette.textMuted,
                 onTap: onCopy,
               ),
               IconCircleButton(
                 icon: AppIcons.share,
                 semanticLabel: 'Bagikan ayat $number',
                 size: 32,
-                iconSize: 13,
-                iconColor: AppColors.textFaint,
+                iconSize: 14,
+                iconColor: palette.textMuted,
                 onTap: onShare,
               ),
             ],

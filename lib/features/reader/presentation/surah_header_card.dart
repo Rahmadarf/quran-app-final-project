@@ -1,14 +1,13 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/pill_button.dart';
 import '../../../shared/widgets/pressable.dart';
 
-/// Kartu informasi surat di atas Reader: metadata, nama Arab, nama Latin,
-/// arti, lalu bilah alat (qari, transliterasi, ukuran huruf, ulang).
+/// Kartu informasi surat di atas Reader dual-mode.
 class SurahHeaderCard extends StatelessWidget {
   const SurahHeaderCard({
     super.key,
@@ -25,7 +24,6 @@ class SurahHeaderCard extends StatelessWidget {
     this.onRepeatTap,
   });
 
-  /// Mis. "Surat ke-55 • 78 Ayat • Makkiyah".
   final String metadata;
   final String arabicName;
   final String latinName;
@@ -40,37 +38,38 @@ class SurahHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return AppSurface(
-      color: AppColors.surfaceAt(0.85),
-      borderColor: AppColors.border,
-      blur: 12,
-      radius: 12,
+      color: palette.surface,
+      borderColor: palette.border,
+      radius: 16,
       padding: const EdgeInsets.all(16),
-      shadows: const [
-        BoxShadow(
-          color: AppColors.shadow,
-          blurRadius: 15,
-          offset: Offset(0, 10),
-          spreadRadius: -3,
-        ),
-      ],
       child: Column(
         children: [
           AppSurface(
-            color: AppColors.backgroundAt(0.7),
-            borderColor: AppColors.borderAt(0.5),
+            color: palette.surfaceElevated,
+            borderColor: palette.border,
             radius: 999,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const AppIcon(
+                AppIcon(
                   AppIcons.mushaf,
                   size: 12,
-                  color: AppColors.skyLabel,
+                  color: palette.accentLight,
                 ),
                 const SizedBox(width: 8),
-                Flexible(child: Text(metadata, style: AppTextStyles.micro)),
+                Flexible(
+                  child: Text(
+                    metadata,
+                    style: AppTextStyles.micro.copyWith(
+                      color: palette.textMuted,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -79,38 +78,26 @@ class SurahHeaderCard extends StatelessWidget {
             arabicName,
             textDirection: TextDirection.rtl,
             style: AppTextStyles.arabic(
-              size: 36,
-              lineHeight: 58.5,
-              color: AppColors.accentLight,
+              size: 34,
+              lineHeight: 54,
+              color: palette.textPrimary,
             ),
           ),
           Text(
             latinName,
-            style: AppTextStyles.custom(
-              size: 18,
-              lineHeight: 24,
-              weight: FontWeight.w600,
-              letterSpacing: -0.45,
-            ),
+            style: AppTextStyles.heading.copyWith(color: palette.textPrimary),
           ),
           Text(
             meaning,
-            style: AppTextStyles.custom(
-              size: 12,
-              lineHeight: 16,
-              weight: FontWeight.w500,
-              color: AppColors.textSubtle,
-            ),
+            style: AppTextStyles.caption.copyWith(color: palette.textMuted),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           DecoratedBox(
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.borderAt(0.5)),
-              ),
+              border: Border(top: BorderSide(color: palette.border)),
             ),
             child: Padding(
-              padding: const EdgeInsets.only(top: 13),
+              padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
                   Flexible(
@@ -123,9 +110,7 @@ class SurahHeaderCard extends StatelessWidget {
                         horizontal: 12,
                         vertical: 6,
                       ),
-                      textStyle: AppTextStyles.micro.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
+                      textStyle: AppTextStyles.label,
                       semanticLabel: 'Pilih qari. Saat ini $qariName',
                       onTap: onQariTap,
                     ),
@@ -135,9 +120,9 @@ class SurahHeaderCard extends StatelessWidget {
                     label: 'ABC',
                     height: 32,
                     style: PillButtonStyle(
-                      background: AppColors.backgroundAt(0.7),
-                      border: AppColors.borderAt(0.4),
-                      foreground: AppColors.textSubtle,
+                      background: palette.surfaceElevated,
+                      border: palette.border,
+                      foreground: palette.textPrimary,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     semanticLabel: transliterationOn
@@ -150,8 +135,8 @@ class SurahHeaderCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: transliterationOn
-                              ? AppColors.accentLight
-                              : AppColors.placeholder,
+                              ? palette.accent
+                              : palette.textSubtle,
                         ),
                       ),
                     ),
@@ -195,20 +180,21 @@ class _ToolCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Pressable(
       onTap: onTap,
       semanticLabel: label,
       child: AppSurface(
         shape: BoxShape.circle,
-        color: AppColors.backgroundAt(0.7),
-        borderColor: AppColors.borderAt(0.4),
+        color: active ? palette.accentSoft : palette.surfaceElevated,
+        borderColor: active ? palette.borderAccent : palette.border,
         width: 32,
         height: 32,
         child: Center(
           child: AppIcon(
             icon,
             size: 13,
-            color: active ? AppColors.accentLight : AppColors.textSubtle,
+            color: active ? palette.accentLight : palette.textMuted,
           ),
         ),
       ),

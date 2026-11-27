@@ -1,15 +1,14 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/pressable.dart';
 import '../../../shared/widgets/selector_field.dart';
 
-/// Kartu pemilih ringkas di dasar pemutar: baris qari di atas, lalu dua
-/// kolom pemilih surat dan ayat. Tiap bagian membuka panel pilihannya.
+/// Kartu pemilih ringkas dual-mode di dasar Fullscreen Player: qari, surat, ayat.
 class PlaybackSelectorCard extends StatelessWidget {
   const PlaybackSelectorCard({
     super.key,
@@ -25,8 +24,6 @@ class PlaybackSelectorCard extends StatelessWidget {
   final String qariName;
   final String surahName;
   final int ayahNumber;
-
-  /// Avatar qari (foto atau inisial). Bila kosong, dibuat dari nama.
   final Widget? qariAvatar;
   final VoidCallback? onQariTap;
   final VoidCallback? onSurahTap;
@@ -34,12 +31,13 @@ class PlaybackSelectorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return AppSurface(
-      color: AppColors.sheet,
-      borderColor: AppColors.border,
-      blur: 12,
-      radius: 18,
-      padding: const EdgeInsets.fromLTRB(11, 9, 11, 13),
+      color: palette.surface,
+      borderColor: palette.border,
+      radius: 16,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -47,7 +45,7 @@ class PlaybackSelectorCard extends StatelessWidget {
             onTap: onQariTap,
             semanticLabel: 'Buka pilihan qari. Saat ini $qariName',
             child: SizedBox(
-              height: 60,
+              height: 54,
               child: Row(
                 children: [
                   qariAvatar ?? _initialsAvatar(),
@@ -59,38 +57,32 @@ class PlaybackSelectorCard extends StatelessWidget {
                       children: [
                         Text(
                           'QARI',
-                          style: AppTextStyles.custom(
-                            size: 10,
-                            lineHeight: 15,
-                            weight: FontWeight.w600,
-                            color: AppColors.sheetIcon,
-                          ),
+                          style: AppTextStyles.micro
+                              .copyWith(color: palette.accentLight),
                         ),
                         Text(
                           qariName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTextStyles.custom(
-                            size: 13,
-                            lineHeight: 19,
-                            weight: FontWeight.w600,
-                            color: AppColors.sheetText,
+                          style: AppTextStyles.cardTitle.copyWith(
+                            fontSize: 14,
+                            color: palette.textPrimary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const AppIcon(
+                  AppIcon(
                     AppIcons.chevronRight,
                     size: 11,
-                    color: AppColors.sheetIcon,
+                    color: palette.textMuted,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -124,8 +116,8 @@ class PlaybackSelectorCard extends StatelessWidget {
         : '${parts.first[0]}${parts[1][0]}';
     return InitialsAvatar(
       initials: initials.toUpperCase(),
-      size: 44,
-      fontSize: 14,
+      size: 40,
+      fontSize: 13,
     );
   }
 }

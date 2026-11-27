@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../core/network/failure_mapper.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -78,6 +78,7 @@ class _TafsirSheetBodyState extends State<_TafsirSheetBody> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     if (_loading) {
       return const Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -96,7 +97,7 @@ class _TafsirSheetBodyState extends State<_TafsirSheetBody> {
         children: [
           Text(
             _error!,
-            style: AppTextStyles.body.copyWith(color: AppColors.sheetMuted),
+            style: AppTextStyles.body.copyWith(color: palette.textMuted),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
@@ -115,7 +116,7 @@ class _TafsirSheetBodyState extends State<_TafsirSheetBody> {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
           'Tafsir tidak tersedia untuk ayat ini.',
-          style: AppTextStyles.body.copyWith(color: AppColors.sheetMuted),
+          style: AppTextStyles.body.copyWith(color: palette.textMuted),
           textAlign: TextAlign.center,
         ),
       );
@@ -126,7 +127,7 @@ class _TafsirSheetBodyState extends State<_TafsirSheetBody> {
       style: AppTextStyles.custom(
         size: 14,
         lineHeight: 22,
-        color: AppColors.sheetText,
+        color: palette.textPrimary,
       ),
     );
   }

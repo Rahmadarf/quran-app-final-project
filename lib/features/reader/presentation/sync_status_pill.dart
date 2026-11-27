@@ -1,49 +1,44 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_surface.dart';
 
-/// Pil kecil melayang di atas Mini Player Reader yang memberi tahu bahwa
-/// sorotan ayat sedang mengikuti audio. Untuk mode "perkiraan" (docs/06 §4.2)
-/// ganti [label] menjadi "Sorotan perkiraan".
+/// Pil status sinkronisasi audio-ayat dual-mode sesuai Figma `Obsidian / SyncPill`.
 class SyncStatusPill extends StatelessWidget {
   const SyncStatusPill({
     super.key,
     this.label = 'Sinkronisasi Ayat Otomatis',
+    this.isEstimated = false,
   });
 
   final String label;
+  final bool isEstimated;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+    final bg = isEstimated ? palette.warningSoft : palette.accentSoft;
+    final border = isEstimated ? palette.warning : palette.borderAccent;
+    final fg = isEstimated ? palette.warning : palette.accentLight;
+
     return Semantics(
       label: label,
       child: ExcludeSemantics(
         child: AppSurface(
-          color: AppColors.surfaceAt(0.95),
-          borderColor: AppColors.border,
+          color: bg,
+          borderColor: border,
           radius: 999,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          shadows: const [
-            BoxShadow(
-              color: Color(0x66000D29),
-              blurRadius: 10,
-              offset: Offset(0, 4),
-            ),
-          ],
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.accentLight,
+                  color: fg,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: AppColors.lightAt(0.7), blurRadius: 6),
-                  ],
                 ),
-                child: const SizedBox(width: 8, height: 8),
+                child: const SizedBox(width: 7, height: 7),
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -51,10 +46,7 @@ class SyncStatusPill extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.micro.copyWith(
-                    color: AppColors.accentLight,
-                    letterSpacing: 0,
-                  ),
+                  style: AppTextStyles.label.copyWith(color: fg),
                 ),
               ),
             ],

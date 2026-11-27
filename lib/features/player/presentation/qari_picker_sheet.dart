@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/avatar.dart';
@@ -75,6 +75,7 @@ class QariPickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Semantics(
       selected: selected,
       child: Pressable(
@@ -82,7 +83,8 @@ class QariPickerTile extends StatelessWidget {
         semanticLabel: '${option.name}, ${option.origin}',
         pressedScale: 0.99,
         child: AppSurface(
-          color: AppColors.surfaceCard,
+          color: selected ? palette.surfaceActive : palette.surfaceElevated,
+          borderColor: selected ? palette.accent : palette.border,
           radius: 12,
           height: 58,
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -103,7 +105,8 @@ class QariPickerTile extends StatelessWidget {
                         size: 12,
                         lineHeight: 17,
                         weight: FontWeight.w600,
-                        color: AppColors.sheetText,
+                        color:
+                            selected ? palette.accentLight : palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -114,7 +117,7 @@ class QariPickerTile extends StatelessWidget {
                       style: AppTextStyles.custom(
                         size: 10,
                         lineHeight: 15,
-                        color: AppColors.sheetMuted,
+                        color: palette.textMuted,
                       ),
                     ),
                   ],

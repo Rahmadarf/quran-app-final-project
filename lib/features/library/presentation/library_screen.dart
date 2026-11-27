@@ -1,23 +1,20 @@
 import 'package:flutter/widgets.dart';
+import 'package:gap/gap.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
-import '../../../shared/widgets/action_row_card.dart';
+import '../../../app/router.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
-import '../../../shared/widgets/app_search_field.dart';
 import '../../../shared/widgets/app_top_bar.dart';
-import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/icon_circle_button.dart';
 import '../../../shared/widgets/media_row.dart';
 import '../../../shared/widgets/section_header.dart';
 import '../../history/presentation/history_row.dart';
+import '../../player/application/player_providers.dart';
 import 'bookmark_card.dart';
 
-/// Pustaka: playlist tersimpan, riwayat tilawah, dan penanda ayat.
-///
-/// Chip di atas memilih bagian yang ditampilkan. Data di file ini adalah
-/// contoh dari Figma.
+/// Pustaka dual-mode sesuai Figma `05 — Pustaka (Library)`.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
@@ -26,7 +23,7 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  static const int _all = 0, _playlist = 1, _download = 2, _history = 3, _mark = 4;
+  static const int _all = 0, _playlist = 1, _download = 2, _mark = 3;
 
   int _filter = _all;
 
@@ -34,216 +31,152 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppTopBar(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          leading: const AvatarRing(
-            image: AssetImage('assets/images/avatars/aisyah.png'),
-            semanticLabel: 'Foto profil Aisyah',
-          ),
-          center: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'RUANG SIMPAN PERSONAL',
-                style: AppTextStyles.micro.copyWith(
-                  color: AppColors.textMuted,
-                  fontSize: 9,
-                  letterSpacing: 0.9,
-                ),
-              ),
-              Text('Pustaka Saya', style: AppTextStyles.heading),
-            ],
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconCircleButton(
-                icon: AppIcons.add,
-                semanticLabel: 'Buat playlist baru',
-                style: IconCircleStyle.tonal,
-                size: 36,
-                iconSize: 14,
-                iconColor: AppColors.accentLight,
-                onTap: () {},
-              ),
-              const SizedBox(width: 6),
-              IconCircleButton(
-                icon: AppIcons.sort,
-                semanticLabel: 'Urutkan',
-                style: IconCircleStyle.tonal,
-                size: 36,
-                iconSize: 14,
-                iconColor: AppColors.skyLabel,
-                onTap: () {},
-              ),
-              const SizedBox(width: 2),
-              IconCircleButton(
-                icon: AppIcons.search,
-                semanticLabel: 'Cari di pustaka',
-                size: 36,
-                iconSize: 15,
-                iconColor: AppColors.accentLight,
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    final palette = AppThemeScope.paletteOf(context);
+    final player = PlayerScope.read(context);
+    void openCollection() =>
+        Navigator.of(context).pushNamed(AppRoutes.collection);
+    void openReader(int surah, {int? ayah}) => Navigator.of(context)
+        .pushNamed(AppRoutes.readerFor(surah, ayah: ayah));
+
+    return ColoredBox(
+      color: palette.background,
+      child: Column(
+        children: [
+          AppTopBar(
+            showBottomBorder: false,
+            center: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const AppSearchField(
-                  hint: 'Cari surat, qari, atau playlist tersimpan...',
+                Text(
+                  'Pustaka Saya',
+                  style: AppTextStyles.display
+                      .copyWith(color: palette.textPrimary),
                 ),
-                const SizedBox(height: 16),
-                FilterChipBar(
-                  padding: EdgeInsets.zero,
-                  items: const [
-                    FilterChipItem('Semua'),
-                    FilterChipItem('Playlist', count: 4),
-                    FilterChipItem('Unduhan', count: 6),
-                    FilterChipItem('Riwayat'),
-                    FilterChipItem('Penanda', count: 12),
-                  ],
-                  selectedIndex: _filter,
-                  onSelected: (i) => setState(() => _filter = i),
+                Text(
+                  'Playlist, Unduhan Offline & Penanda',
+                  style:
+                      AppTextStyles.caption.copyWith(color: palette.textMuted),
                 ),
-                const SizedBox(height: 16),
-                if (_show(_playlist) || _filter == _download) ..._playlistSection(),
-                if (_show(_history)) ..._historySection(),
-                if (_show(_mark)) ..._bookmarkSection(),
               ],
             ),
+            trailing: IconCircleButton(
+              icon: AppIcons.add,
+              semanticLabel: 'Buat playlist baru',
+              style: IconCircleStyle.primary,
+              size: 38,
+              iconSize: 16,
+              onTap: openCollection,
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilterChipBar(
+                    padding: EdgeInsets.zero,
+                    items: const [
+                      FilterChipItem('Semua'),
+                      FilterChipItem('Playlist'),
+                      FilterChipItem('Unduhan'),
+                      FilterChipItem('Penanda'),
+                    ],
+                    selectedIndex: _filter,
+                    onSelected: (i) => setState(() => _filter = i),
+                  ),
+                  const Gap(18),
+                  if (_show(_playlist) || _filter == _download) ...[
+                    SectionHeader(
+                      title: _filter == _download
+                          ? 'Tersedia Offline'
+                          : 'Playlist & Unduhan',
+                      trailingLabel: 'Lihat semua',
+                      onTrailingTap: openCollection,
+                    ),
+                    const Gap(6),
+                    if (_filter != _download)
+                      MediaRow(
+                        leading: const MediaThumb(
+                          image: AssetImage(
+                            'assets/images/covers/favorit-rutin.png',
+                          ),
+                        ),
+                        title: 'Surat Favorit Rutin',
+                        subtitle: '12 Surat · Aisyah',
+                        onTap: openCollection,
+                        onMore: openCollection,
+                      ),
+                    MediaRow(
+                      leading: const MediaThumb(
+                        image: AssetImage(
+                          'assets/images/covers/masjid-petang.png',
+                        ),
+                      ),
+                      title: 'Dzikir Pagi & Petang',
+                      offline: true,
+                      subtitle: '8 Audio · 24 MB Tersimpan Offline',
+                      onTap: openCollection,
+                      onMore: openCollection,
+                    ),
+                    MediaRow(
+                      leading: const MediaThumb(
+                        image: AssetImage('assets/images/covers/al-kahfi.png'),
+                      ),
+                      title: 'Murattal Pengantar Tidur',
+                      offline: true,
+                      subtitle: 'Al-Mulk, As-Sajdah · 45 mnt',
+                      onTap: () => player.playSurah(67),
+                      onMore: openCollection,
+                    ),
+                    const Gap(22),
+                  ],
+                  if (_show(_mark)) ...[
+                    SectionHeader(
+                      title: 'Penanda Ayat',
+                      trailingLabel: 'Lihat semua',
+                      onTrailingTap: () => openReader(55, ayah: 13),
+                    ),
+                    const Gap(10),
+                    BookmarkCard(
+                      reference: 'QS. Ar-Rahman : 13',
+                      page: 'Juz 27 · Hal. 531',
+                      arabic: 'فَبِاَيِّ اٰلَاۤءِ رَبِّكُمَا تُكَذِّبٰنِ',
+                      translation:
+                          'Maka nikmat Tuhanmu yang manakah yang kamu dustakan?',
+                      onTap: () => openReader(55, ayah: 13),
+                      onListen: () => player.playSurah(55),
+                      onRemove: () {},
+                    ),
+                    const Gap(22),
+                  ],
+                  if (_filter == _all) ...[
+                    const SectionHeader(title: 'Riwayat Terakhir'),
+                    const Gap(6),
+                    HistoryRow(
+                      surahNumber: 55,
+                      title: 'Surah Ar-Rahman',
+                      qariName: 'Misyari Rasyid',
+                      when: 'Kemarin, 21:15',
+                      onTap: () => openReader(55),
+                      onPlay: () => player.playSurah(55, qariId: '05'),
+                    ),
+                    HistoryRow(
+                      surahNumber: 18,
+                      title: 'Surah Al-Kahfi',
+                      qariName: 'Abdurrahman As-Sudais',
+                      when: 'Jumat',
+                      onTap: () => openReader(18),
+                      onPlay: () => player.playSurah(18, qariId: '03'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
-
-  List<Widget> _playlistSection() {
-    final onlyOffline = _filter == _download;
-    return [
-      if (_filter == _all || _filter == _playlist) ...[
-        ActionRowCard(
-          icon: AppIcons.playlistAdd,
-          title: 'Buat Playlist Baru',
-          subtitle: 'Kumpulkan tilawah, wirid & dzikir favoritmu',
-          onTap: () {},
-        ),
-        const SizedBox(height: 24),
-      ],
-      SectionHeader(
-        title: onlyOffline ? 'Tersedia Offline' : 'Playlist Tersimpan',
-        count: onlyOffline ? 1 : 4,
-        titleStyle: AppTextStyles.heading.copyWith(fontSize: 16),
-        trailingLabel: 'Lihat Semua',
-        onTrailingTap: () {},
-      ),
-      const SizedBox(height: 10),
-      if (!onlyOffline) ...[
-        MediaRow(
-          leading: const MediaThumb(
-            image: AssetImage('assets/images/covers/favorit-rutin.png'),
-          ),
-          title: 'Surat Favorit Rutin',
-          favorite: true,
-          subtitle: 'Dibuat oleh Aisyah • 12 Surat',
-          tagline: "Ar-Rahman, Al-Waqi'ah, Al-Mulk",
-          onMore: () {},
-        ),
-        const SizedBox(height: 10),
-      ],
-      MediaRow(
-        leading: const MediaThumb(
-          image: AssetImage('assets/images/covers/masjid-petang.png'),
-          overlayIcon: AppIcons.offlineDone,
-        ),
-        title: 'Dzikir Pagi & Petang',
-        offline: true,
-        subtitle: "Al-Ma'tsurat Lengkap • 8 Audio",
-        tagline: "Syaikh Sa'ad Al-Ghamidi",
-        onMore: () {},
-      ),
-      if (!onlyOffline) ...[
-        const SizedBox(height: 10),
-        MediaRow(
-          leading: const MediaThumb(
-            image: AssetImage('assets/images/covers/al-kahfi.png'),
-          ),
-          title: 'Murattal Pengantar Tidur',
-          subtitle: 'Sajdah, Al-Insan, Al-Mulk • 45 Menit',
-          tagline: 'Nada Hening Tenang • Audio 3D',
-          onMore: () {},
-        ),
-        const SizedBox(height: 10),
-        MediaRow(
-          leading: const MediaThumb(icon: AppIcons.podcast),
-          title: 'Tadabbur & Kajian Pilihan',
-          subtitle: '5 Episode Podcast Audio',
-          tagline: 'Makna Keindahan Surat Al-Fatihah',
-          onMore: () {},
-        ),
-      ],
-      const SizedBox(height: 24),
-    ];
-  }
-
-  List<Widget> _historySection() => [
-        SectionHeader(
-          title: 'Riwayat Tilawah Terakhir',
-          titleStyle: AppTextStyles.heading.copyWith(fontSize: 16),
-          trailingLabel: 'Lihat lebih banyak',
-          onTrailingTap: () {},
-        ),
-        const SizedBox(height: 10),
-        HistoryRow(
-          surahNumber: 55,
-          title: 'Surah Ar-Rahman (Ayat 1–78)',
-          qariName: 'Misyari Rasyid',
-          when: 'Kemarin, 21:15',
-          onPlay: () {},
-        ),
-        const SizedBox(height: 8),
-        HistoryRow(
-          surahNumber: 18,
-          title: 'Surah Al-Kahfi',
-          qariName: 'Abdurrahman As-Sudais',
-          when: 'Hari Jumat',
-          onPlay: () {},
-        ),
-        const SizedBox(height: 24),
-      ];
-
-  List<Widget> _bookmarkSection() => [
-        SectionHeader(
-          title: 'Penanda Ayat Tersimpan',
-          count: 12,
-          titleStyle: AppTextStyles.heading.copyWith(fontSize: 16),
-          trailingLabel: 'Lihat Semua',
-          onTrailingTap: () {},
-        ),
-        const SizedBox(height: 10),
-        BookmarkCard(
-          reference: 'QS. Ar-Rahman : 13',
-          page: 'Halaman 531',
-          arabic: 'فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ',
-          translation: 'Maka nikmat Tuhanmu yang manakah yang kamu dustakan?',
-          onListen: () {},
-          onRemove: () {},
-        ),
-        const SizedBox(height: 10),
-        BookmarkCard(
-          reference: "QS. Ar-Ra'd : 28",
-          page: 'Halaman 252',
-          arabic: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
-          translation: 'Ingatlah, hanya dengan mengingat Allah hati menjadi tenteram.',
-          onListen: () {},
-          onRemove: () {},
-        ),
-      ];
 }

@@ -1,13 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../quran/domain/ayah.dart';
 
-/// Tata letak Mode Baca (Mushaf) mengalir dalam satu blok RTL dengan penanda
-/// akhir ayat `۝` di luar string teks Arab API (docs/06 §3.2, §6).
+/// Tata letak Mode Baca (Mushaf) dual-mode dengan penanda akhir ayat `۝`
+/// di luar string teks Arab API.
 class MushafView extends StatefulWidget {
   const MushafView({
     super.key,
@@ -39,6 +39,8 @@ class _MushafViewState extends State<MushafView> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     for (final r in _recognizers) {
       r.dispose();
     }
@@ -46,8 +48,8 @@ class _MushafViewState extends State<MushafView> {
 
     final baseStyle = AppTextStyles.arabic(
       size: widget.arabicFontSize,
-      lineHeight: widget.arabicFontSize * 2.05,
-      color: AppColors.textPrimary,
+      lineHeight: widget.arabicFontSize * 2.15,
+      color: palette.textPrimary,
     );
 
     final spans = <InlineSpan>[];
@@ -64,9 +66,9 @@ class _MushafViewState extends State<MushafView> {
           recognizer: recognizer,
           style: isActive
               ? baseStyle.copyWith(
-                  color: AppColors.accentLight,
+                  color: palette.accentLight,
                   fontWeight: FontWeight.w700,
-                  backgroundColor: AppColors.surfaceActive,
+                  backgroundColor: palette.accentSoft,
                 )
               : baseStyle,
         ),
@@ -78,18 +80,19 @@ class _MushafViewState extends State<MushafView> {
           recognizer: recognizer,
           style: baseStyle.copyWith(
             fontSize: widget.arabicFontSize * 0.78,
-            color: isActive ? AppColors.accentLight : AppColors.accent,
+            color: isActive ? palette.accentLight : palette.accent,
           ),
         ),
       );
     }
 
     return Semantics(
-      label: 'Mode baca Al-Qur\'an. Ketuk ayat untuk melihat terjemahan dan tafsir.',
+      label:
+          "Mode baca Al-Qur'an. Ketuk ayat untuk melihat terjemahan dan tafsir.",
       child: AppSurface(
-        color: AppColors.surfaceVerse,
-        borderColor: AppColors.borderAt(0.35),
-        radius: 14,
+        color: palette.surface,
+        borderColor: palette.border,
+        radius: 16,
         padding: const EdgeInsets.all(18),
         child: Directionality(
           textDirection: TextDirection.rtl,

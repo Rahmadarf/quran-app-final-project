@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/pressable.dart';
@@ -27,21 +27,22 @@ class QariFooterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Pressable(
       onTap: onTap,
       semanticLabel: '$label: $name. $subtitle',
       pressedScale: 0.99,
       child: AppSurface(
-        color: AppColors.surfaceAt(0.8),
-        borderColor: AppColors.borderAt(0.4),
+        color: palette.surfaceElevated.withValues(alpha: 0.9),
+        borderColor: palette.border,
         blur: 12,
         radius: 16,
         padding: const EdgeInsets.all(9),
-        shadows: const [
+        shadows: [
           BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 6,
-            offset: Offset(0, 4),
+            color: palette.shadow,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
             spreadRadius: -1,
           ),
         ],
@@ -50,7 +51,7 @@ class QariFooterCard extends StatelessWidget {
             DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.lightAt(0.4)),
+                border: Border.all(color: palette.border),
               ),
               child: ClipOval(
                 child: Image(
@@ -71,7 +72,7 @@ class QariFooterCard extends StatelessWidget {
                   Text(
                     label,
                     style: AppTextStyles.micro.copyWith(
-                      color: AppColors.lightAt(0.7),
+                      color: palette.textMuted,
                     ),
                   ),
                   Text(
@@ -82,7 +83,7 @@ class QariFooterCard extends StatelessWidget {
                       size: 12,
                       lineHeight: 16,
                       weight: FontWeight.w600,
-                      color: const Color(0xFFFFFFFF),
+                      color: palette.textPrimary,
                     ),
                   ),
                   Text(
@@ -90,17 +91,17 @@ class QariFooterCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.micro
-                        .copyWith(color: AppColors.accentLight),
+                        .copyWith(color: palette.accentLight),
                   ),
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
               child: AppIcon(
                 AppIcons.chevronRight,
                 size: 12,
-                color: Color(0xFF8CA9BA),
+                color: palette.textMuted,
               ),
             ),
           ],

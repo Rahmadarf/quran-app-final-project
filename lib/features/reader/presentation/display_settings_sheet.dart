@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_bottom_sheet.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/number_stepper.dart';
@@ -26,13 +26,14 @@ Future<void> showDisplaySettingsSheet(
     builder: (context, close) => AnimatedBuilder(
       animation: reader,
       builder: (context, _) {
+        final palette = AppThemeScope.paletteOf(context);
         final s = reader.settings;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'Mode Reader',
-              style: AppTextStyles.caption.copyWith(color: AppColors.sheetMuted),
+              style: AppTextStyles.caption.copyWith(color: palette.textMuted),
             ),
             const SizedBox(height: 8),
             Row(
@@ -61,7 +62,7 @@ Future<void> showDisplaySettingsSheet(
             const SizedBox(height: 16),
             Text(
               'Ukuran huruf Arab (tingkat ${s.arabicSizeLevel}/5)',
-              style: AppTextStyles.caption.copyWith(color: AppColors.sheetMuted),
+              style: AppTextStyles.caption.copyWith(color: palette.textMuted),
             ),
             const SizedBox(height: 8),
             NumberStepper(
@@ -77,7 +78,7 @@ Future<void> showDisplaySettingsSheet(
             const SizedBox(height: 16),
             Text(
               'Ukuran terjemahan',
-              style: AppTextStyles.caption.copyWith(color: AppColors.sheetMuted),
+              style: AppTextStyles.caption.copyWith(color: palette.textMuted),
             ),
             const SizedBox(height: 8),
             Row(
@@ -127,7 +128,7 @@ Future<void> showDisplaySettingsSheet(
             const SizedBox(height: 16),
             Text(
               'Mode sinkronisasi audio',
-              style: AppTextStyles.caption.copyWith(color: AppColors.sheetMuted),
+              style: AppTextStyles.caption.copyWith(color: palette.textMuted),
             ),
             const SizedBox(height: 8),
             _SegmentChoice(
@@ -173,14 +174,15 @@ class _SegmentChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Semantics(
       selected: selected,
       child: Pressable(
         onTap: onTap,
         semanticLabel: label,
         child: AppSurface(
-          color: selected ? AppColors.surfaceStrong : AppColors.surfaceCard,
-          borderColor: selected ? AppColors.accent : null,
+          color: selected ? palette.surfaceActive : palette.surfaceElevated,
+          borderColor: selected ? palette.accent : palette.border,
           radius: 10,
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -193,7 +195,7 @@ class _SegmentChoice extends StatelessWidget {
                 size: 12,
                 lineHeight: 17,
                 weight: FontWeight.w600,
-                color: selected ? AppColors.accentLight : AppColors.sheetText,
+                color: selected ? palette.accentLight : palette.textPrimary,
               ),
             ),
           ),
@@ -216,13 +218,15 @@ class _ToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
     return Semantics(
       toggled: value,
       child: Pressable(
         onTap: onTap,
         semanticLabel: '$label: ${value ? 'aktif' : 'mati'}',
         child: AppSurface(
-          color: AppColors.surfaceCard,
+          color: palette.surfaceElevated,
+          borderColor: palette.border,
           radius: 10,
           height: 46,
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -235,19 +239,20 @@ class _ToggleRow extends StatelessWidget {
                     size: 13,
                     lineHeight: 18,
                     weight: FontWeight.w500,
-                    color: AppColors.sheetText,
+                    color: palette.textPrimary,
                   ),
                 ),
               ),
               AppSurface(
-                color: value ? AppColors.accent : AppColors.background,
+                color: value ? palette.accent : palette.surface,
+                borderColor: value ? null : palette.border,
                 radius: 999,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 child: Text(
                   value ? 'Ya' : 'Tidak',
                   style: AppTextStyles.micro.copyWith(
-                    color: value ? AppColors.onLight : AppColors.sheetMuted,
+                    color: value ? palette.onAccent : palette.textMuted,
                     letterSpacing: 0,
                   ),
                 ),

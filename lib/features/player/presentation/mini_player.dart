@@ -1,14 +1,11 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/pressable.dart';
 
-/// Mini Player: kartu kaca di atas bilah navigasi dengan garis progres tipis.
-///
-/// Slot [leading] dan [actions] dibuat bebas karena isinya berbeda per layar
-/// (Beranda: hati + putar; Jelajah: putar + lanjut; Reader: nomor ayat).
+/// Mini Player floating dual-mode sesuai Figma `Obsidian / MiniPlayer`.
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({
     super.key,
@@ -24,44 +21,42 @@ class MiniPlayer extends StatelessWidget {
   final String title;
   final String subtitle;
   final List<Widget> actions;
-
-  /// 0..1. Posisi putar saat ini terhadap durasi.
   final double progress;
-
-  /// Membuka Fullscreen Player.
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: 'Sedang diputar: $title, $subtitle. Buka pemutar penuh',
       pressedScale: 0.99,
       pressedOpacity: 0.95,
       child: AppSurface(
-        color: AppColors.surfaceAt(0.95),
-        borderColor: AppColors.border,
-        blur: 24,
-        radius: 12,
-        shadows: const [
+        color: palette.surfaceElevated,
+        borderColor: palette.borderStrong,
+        radius: 16,
+        shadows: [
           BoxShadow(
-            color: Color(0x99001233), // rgba(0,18,51,0.6)
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            color: palette.shadow,
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+            spreadRadius: -4,
           ),
         ],
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 54),
+          constraints: const BoxConstraints(minHeight: 58),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 child: Row(
                   children: [
                     leading,
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -72,13 +67,15 @@ class MiniPlayer extends StatelessWidget {
                             title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.cardTitle,
+                            style: AppTextStyles.cardTitle
+                                .copyWith(color: palette.textPrimary),
                           ),
                           Text(
                             subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.caption,
+                            style: AppTextStyles.caption
+                                .copyWith(color: palette.textMuted),
                           ),
                         ],
                       ),
@@ -90,7 +87,9 @@ class MiniPlayer extends StatelessWidget {
                   ],
                 ),
               ),
-              RepaintBoundary(child: _ProgressLine(progress: progress)),
+              RepaintBoundary(
+                child: _ProgressLine(progress: progress, palette: palette),
+              ),
             ],
           ),
         ),
@@ -100,28 +99,24 @@ class MiniPlayer extends StatelessWidget {
 }
 
 class _ProgressLine extends StatelessWidget {
-  const _ProgressLine({required this.progress});
+  const _ProgressLine({required this.progress, required this.palette});
 
   final double progress;
+  final AppThemePalette palette;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 2.4,
+      height: 2.5,
       child: ColoredBox(
-        color: const Color(0xFF001A43),
+        color: palette.border,
         child: Align(
           alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
             widthFactor: progress.clamp(0.0, 1.0),
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(999)),
-                gradient: LinearGradient(
-                  colors: [AppColors.accent, AppColors.accentLight],
-                ),
-              ),
-              child: SizedBox.expand(),
+            child: ColoredBox(
+              color: palette.accent,
+              child: const SizedBox.expand(),
             ),
           ),
         ),
@@ -130,7 +125,7 @@ class _ProgressLine extends StatelessWidget {
   }
 }
 
-/// Kotak kecil 36 dp untuk [MiniPlayer.leading]: sampul atau nomor/teks.
+/// Kotak kecil 40 dp untuk [MiniPlayer.leading]: sampul atau nomor/teks.
 class MiniPlayerLeading extends StatelessWidget {
   const MiniPlayerLeading.image(this.image, {super.key})
       : text = null,
@@ -146,15 +141,17 @@ class MiniPlayerLeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return AppSurface(
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       radius: 8,
-      color: AppColors.background,
-      borderColor: image != null ? AppColors.accent : AppColors.borderAt(0.6),
+      color: palette.surface,
+      borderColor: palette.border,
       child: image != null
           ? Image(
-              image: ResizeImage.resizeIfNeeded(108, null, image!),
+              image: ResizeImage.resizeIfNeeded(120, null, image!),
               fit: BoxFit.cover,
               alignment: imageAlignment,
               excludeFromSemantics: true,
@@ -163,10 +160,10 @@ class MiniPlayerLeading extends StatelessWidget {
               child: Text(
                 text!,
                 style: AppTextStyles.arabic(
-                  size: 12,
+                  size: 13,
                   lineHeight: 16,
                   weight: FontWeight.w700,
-                  color: AppColors.accentLight,
+                  color: palette.accentLight,
                 ),
               ),
             ),

@@ -1,16 +1,13 @@
 import 'package:flutter/widgets.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
+import '../../../app/theme.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_surface.dart';
 import '../../../shared/widgets/badge_chip.dart';
 import '../../../shared/widgets/pressable.dart';
 
-/// Kartu tafsir/tadabbur di layar Jelajah.
-///
-/// Struktur: baris atas (label + meta kiri, info kanan), judul, subjudul,
-/// blok Arab opsional, ringkasan, garis, lalu dua aksi di dasar.
+/// Kartu tafsir/tadabbur editorial hairline dual-mode sesuai Figma `04 — Jelajah`.
 class TafsirCard extends StatelessWidget {
   const TafsirCard({
     super.key,
@@ -31,10 +28,7 @@ class TafsirCard extends StatelessWidget {
     this.onTap,
   });
 
-  /// Mis. "Surah ke-1", "Ayat Agung".
   final String tag;
-
-  /// Mis. "Makkiyyah • 7 Ayat".
   final String meta;
   final String title;
   final String subtitle;
@@ -42,12 +36,8 @@ class TafsirCard extends StatelessWidget {
   final AppIcons leftActionIcon;
   final String leftActionLabel;
   final String rightActionLabel;
-
-  /// Info kecil di kanan atas, mis. ikon timer + "14 mnt audio".
   final AppIcons? infoIcon;
   final String? infoLabel;
-
-  /// Kutipan Arab dalam kotak gelap (opsional) dan terjemahannya.
   final String? arabic;
   final String? arabicTranslation;
   final VoidCallback? onLeftAction;
@@ -56,150 +46,129 @@ class TafsirCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return Pressable(
       onTap: onTap,
       semanticLabel: '$title. $subtitle',
       pressedScale: 0.99,
-      child: AppSurface(
-        color: AppColors.surfaceCard,
-        borderColor: AppColors.borderAt(0.5),
-        radius: 12,
-        padding: const EdgeInsets.all(17),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                BadgeChip.tag(tag),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    meta,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: palette.border)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    meta.toUpperCase(),
                     style: AppTextStyles.micro
-                        .copyWith(fontWeight: FontWeight.w500),
+                        .copyWith(color: palette.accentLight),
+                  ),
+                  const Spacer(),
+                  if (infoLabel != null) ...[
+                    if (infoIcon != null) ...[
+                      AppIcon(infoIcon!, size: 12, color: palette.textMuted),
+                      const SizedBox(width: 4),
+                    ],
+                    Text(
+                      infoLabel!,
+                      style: AppTextStyles.caption
+                          .copyWith(color: palette.textMuted),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: AppTextStyles.cardHeading
+                    .copyWith(color: palette.textPrimary),
+              ),
+              if (arabic != null) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    arabic!,
+                    textAlign: TextAlign.right,
+                    textDirection: TextDirection.rtl,
+                    style: AppTextStyles.arabic(
+                      size: 20,
+                      lineHeight: 38,
+                      color: palette.textPrimary,
+                    ),
                   ),
                 ),
-                if (infoLabel != null) ...[
-                  if (infoIcon != null) ...[
-                    AppIcon(infoIcon!, size: 11, color: AppColors.skyLabel),
-                    const SizedBox(width: 4),
-                  ],
-                  Text(infoLabel!, style: AppTextStyles.micro),
-                ],
               ],
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: AppTextStyles.cardHeading),
-            Text(
-              subtitle,
-              style: AppTextStyles.label.copyWith(color: AppColors.accentLight),
-            ),
-            if (arabic != null) ...[
-              const SizedBox(height: 12),
-              AppSurface(
-                color: AppColors.backgroundAt(0.6),
-                radius: 8,
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    Text(
-                      arabic!,
-                      textAlign: TextAlign.center,
-                      textDirection: TextDirection.rtl,
-                      style: AppTextStyles.arabic(
-                        size: 22,
-                        lineHeight: 40,
-                        color: AppColors.textTitle,
-                      ),
-                    ),
-                    if (arabicTranslation != null) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        '"$arabicTranslation"',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.custom(
-                          size: 10,
-                          lineHeight: 15,
-                          weight: FontWeight.w500,
-                          style: FontStyle.italic,
-                          color: AppColors.skyLabel,
-                        ),
-                      ),
-                    ],
-                  ],
+              const SizedBox(height: 6),
+              Text(
+                description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.caption.copyWith(
+                  color: palette.textMuted,
+                  height: 1.5,
                 ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Pressable(
+                    onTap: onLeftAction,
+                    semanticLabel: leftActionLabel,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppIcon(
+                          leftActionIcon,
+                          size: 14,
+                          color: palette.accentLight,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          leftActionLabel,
+                          style: AppTextStyles.labelStrong
+                              .copyWith(color: palette.accentLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Pressable(
+                    onTap: onRightAction,
+                    semanticLabel: rightActionLabel,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          rightActionLabel,
+                          style: AppTextStyles.label
+                              .copyWith(color: palette.textMuted),
+                        ),
+                        const SizedBox(width: 4),
+                        AppIcon(
+                          AppIcons.chevronRight,
+                          size: 10,
+                          color: palette.textMuted,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
-            const SizedBox(height: 12),
-            Text(
-              description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.bodyRelaxed,
-            ),
-            const SizedBox(height: 12),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: AppColors.borderAt(0.3)),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 9),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Pressable(
-                      onTap: onLeftAction,
-                      semanticLabel: leftActionLabel,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppIcon(
-                            leftActionIcon,
-                            size: 15,
-                            color: AppColors.accentLight,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            leftActionLabel,
-                            style: AppTextStyles.label
-                                .copyWith(color: AppColors.accentLight),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Pressable(
-                      onTap: onRightAction,
-                      semanticLabel: rightActionLabel,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(rightActionLabel, style: AppTextStyles.label),
-                          const SizedBox(width: 4),
-                          const AppIcon(
-                            AppIcons.arrowForward,
-                            size: 11,
-                            color: AppColors.skyLabel,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Kartu ayat pilihan: ikon kutip, rujukan, ayat Arab, terjemahan, aksi putar.
+/// Kartu ayat pilihan dual-mode.
 class AyahQuoteCard extends StatelessWidget {
   const AyahQuoteCard({
     super.key,
@@ -211,7 +180,6 @@ class AyahQuoteCard extends StatelessWidget {
     this.onAction,
   });
 
-  /// Mis. "QS. Ar-Rahman: 13".
   final String reference;
   final String arabic;
   final String translation;
@@ -221,28 +189,24 @@ class AyahQuoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = AppThemeScope.paletteOf(context);
+
     return AppSurface(
-      color: AppColors.surfaceCard,
-      borderColor: AppColors.borderAt(0.5),
+      color: palette.surface,
+      borderColor: palette.border,
       radius: 12,
-      padding: const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const AppIcon(AppIcons.quote, size: 20, color: AppColors.accent),
-              BadgeChip.pill(
-                reference,
-                textStyle: AppTextStyles.micro.copyWith(
-                  color: AppColors.accentLight,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              AppIcon(AppIcons.quote, size: 18, color: palette.accent),
+              BadgeChip.pill(reference),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: Text(
@@ -250,31 +214,24 @@ class AyahQuoteCard extends StatelessWidget {
               textAlign: TextAlign.right,
               textDirection: TextDirection.rtl,
               style: AppTextStyles.arabic(
-                size: 24,
-                lineHeight: 44,
-                color: AppColors.textTitle,
+                size: 22,
+                lineHeight: 42,
+                color: palette.textPrimary,
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '"$translation"',
-            style: AppTextStyles.custom(
-              size: 13,
-              lineHeight: 20,
-              style: FontStyle.italic,
-              color: AppColors.textMuted,
-            ),
+            '“$translation”',
+            style: AppTextStyles.body.copyWith(color: palette.textMuted),
           ),
           const SizedBox(height: 12),
           DecoratedBox(
             decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(color: AppColors.borderAt(0.3)),
-              ),
+              border: Border(top: BorderSide(color: palette.border)),
             ),
             child: Padding(
-              padding: const EdgeInsets.only(top: 9),
+              padding: const EdgeInsets.only(top: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -283,10 +240,8 @@ class AyahQuoteCard extends StatelessWidget {
                       caption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.micro.copyWith(
-                        color: AppColors.textFaint,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: AppTextStyles.caption
+                          .copyWith(color: palette.textSubtle),
                     ),
                   ),
                   Pressable(
@@ -297,14 +252,14 @@ class AyahQuoteCard extends StatelessWidget {
                       children: [
                         Text(
                           actionLabel,
-                          style: AppTextStyles.label
-                              .copyWith(color: AppColors.accentLight),
+                          style: AppTextStyles.labelStrong
+                              .copyWith(color: palette.accentLight),
                         ),
                         const SizedBox(width: 4),
-                        const AppIcon(
+                        AppIcon(
                           AppIcons.chevronRight,
-                          size: 8,
-                          color: AppColors.accentLight,
+                          size: 9,
+                          color: palette.accentLight,
                         ),
                       ],
                     ),

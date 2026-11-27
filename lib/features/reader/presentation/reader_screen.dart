@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:share_plus/share_plus.dart';
 
-import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
 import '../../../app/theme.dart';
@@ -19,6 +19,7 @@ import '../../../shared/widgets/pill_button.dart';
 import '../../../shared/widgets/skeleton.dart';
 import '../../../shared/widgets/status_banner.dart';
 import '../../player/application/player_controller.dart';
+import '../../player/domain/media_item.dart';
 import '../../player/presentation/mini_player.dart';
 import '../../player/presentation/qari_picker_sheet.dart';
 import '../../quran/application/quran_providers.dart';
@@ -165,16 +166,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
       context,
       title: 'Tentang ${surah.latinName}',
       subtitle: '${surah.revelation.label} · ${surah.ayahCount} ayat',
-      builder: (_, _) => Text(
-        surah.descriptionPlain.isEmpty
-            ? 'Tidak ada deskripsi tambahan.'
-            : surah.descriptionPlain,
-        style: AppTextStyles.custom(
-          size: 14,
-          lineHeight: 22,
-          color: AppColors.sheetText,
-        ),
-      ),
+      builder: (ctx, _) {
+        final palette = AppThemeScope.paletteOf(ctx);
+        return Text(
+          surah.descriptionPlain.isEmpty
+              ? 'Tidak ada deskripsi tambahan.'
+              : surah.descriptionPlain,
+          style: AppTextStyles.custom(
+            size: 14,
+            lineHeight: 22,
+            color: palette.textPrimary,
+          ),
+        );
+      },
     );
   }
 
@@ -198,9 +202,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
             leading: IconCircleButton(
               icon: AppIcons.arrowBack,
               semanticLabel: 'Kembali',
-              size: 40,
-              iconSize: 18,
-              iconColor: AppColors.textMuted,
+              style: IconCircleStyle.outlined,
+              size: 38,
+              iconSize: 17,
+              iconColor: palette.textPrimary,
               onTap: () => Navigator.of(context).maybePop(),
             ),
             center: Column(
@@ -213,22 +218,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       : 'Surat ${widget.surahNumber}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.custom(
-                    size: 18,
-                    lineHeight: 24,
-                    weight: FontWeight.w600,
-                    color: AppColors.textPlayerTitle,
-                    letterSpacing: -0.45,
-                  ),
+                  style: AppTextStyles.heading
+                      .copyWith(color: palette.textPrimary),
                 ),
                 Text(
                   surah != null
-                      ? 'Surat ke-${surah.number} • ${surah.ayahCount} Ayat'
-                      : 'Memuat surat...',
-                  style: AppTextStyles.micro.copyWith(
-                    color: AppColors.accentLight,
-                    letterSpacing: 0,
-                  ),
+                      ? 'Surat ke-${surah.number} · ${surah.ayahCount} Ayat'
+                      : 'Memuat surat…',
+                  style:
+                      AppTextStyles.caption.copyWith(color: palette.textMuted),
                 ),
               ],
             ),
@@ -238,9 +236,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 IconCircleButton(
                   icon: AppIcons.textSize,
                   semanticLabel: 'Pengaturan tampilan Reader',
-                  size: 40,
+                  style: IconCircleStyle.outlined,
+                  size: 38,
                   iconSize: 16,
-                  iconColor: AppColors.accentLight,
+                  iconColor: palette.textPrimary,
                   onTap: () => showDisplaySettingsSheet(
                     context,
                     reader: reader,
@@ -248,7 +247,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     currentActiveAyah: _selectedAyah,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 const AvatarRing(
                   image: AssetImage('assets/images/avatars/aisyah.png'),
                   size: 32,
@@ -484,6 +483,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 runSpacing: 6,
                 children: [
                   SyncStatusPill(
+                    isEstimated: sync.isEstimated ||
+                        settings.syncMode == SyncMode.fullSurah,
                     label: sync.isEstimated ||
                             settings.syncMode == SyncMode.fullSurah
                         ? 'Sorotan perkiraan'
@@ -566,7 +567,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
             '${ayah.arabic}\n\n${ayah.translation}\n(QS ${surah.latinName}: ${ayah.number})';
         Clipboard.setData(ClipboardData(text: text));
       },
-      onShare: () {},
+      onShare: () {
+        final text =
+            '${ayah.arabic}\n\n${ayah.translation}\n(QS ${surah.latinName}: ${ayah.number})';
+        unawaited(SharePlus.instance.share(ShareParams(text: text)));
+      },
     );
   }
 
@@ -577,6 +582,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     Surah surah,
     int activeAyah,
   ) {
+    final palette = AppThemeScope.paletteOf(context);
     return MiniPlayer(
       leading: MiniPlayerLeading.text(_arabicDigits(activeAyah)),
       title: '${surah.latinName} : Ayat $activeAyah',
@@ -589,7 +595,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           semanticLabel: 'Ayat sebelumnya',
           size: 32,
           iconSize: 12,
-          iconColor: AppColors.textMuted,
+          iconColor: palette.textMuted,
           onTap: activeAyah > 1
               ? () {
                   final prev = activeAyah - 1;
@@ -602,10 +608,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
           icon: player.playing ? AppIcons.pause : AppIcons.play,
           semanticLabel: player.playing ? 'Jeda' : 'Putar',
           style: IconCircleStyle.primary,
-          size: 40,
+          size: 36,
           iconSize: 14,
           onTap: () {
-            if (player.state.current?.surahNumber == surah.number) {
+            final cur = player.state.current;
+            final alreadySyncedMode = cur?.surahNumber == surah.number &&
+                (reader.settings.syncMode == SyncMode.fullSurah ||
+                    cur?.kind == MediaKind.ayah);
+            if (alreadySyncedMode) {
               player.togglePlay();
             } else {
               reader.playFromAyah(player, surah, activeAyah);
@@ -617,7 +627,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           semanticLabel: 'Ayat berikutnya',
           size: 32,
           iconSize: 12,
-          iconColor: AppColors.textMuted,
+          iconColor: palette.textMuted,
           onTap: activeAyah < surah.ayahCount
               ? () {
                   final next = activeAyah + 1;
