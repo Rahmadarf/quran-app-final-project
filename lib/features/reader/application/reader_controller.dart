@@ -80,6 +80,8 @@ class ReaderController extends ChangeNotifier {
   AppFailure? _surahDetailError;
 
   final Map<int, SurahTafsir> _tafsirCache = {};
+  QuranDataFreshness _surahsFreshness = QuranDataFreshness.fresh;
+  QuranDataFreshness _detailFreshness = QuranDataFreshness.fresh;
   bool _disposed = false;
 
   QuranRepository get repository => _repository;
@@ -91,11 +93,29 @@ class ReaderController extends ChangeNotifier {
   List<Surah> get surahs => _surahs;
   bool get loadingSurahs => _loadingSurahs;
   AppFailure? get surahsError => _surahsError;
+  QuranDataFreshness get surahsFreshness => _surahsFreshness;
+  bool get isSurahsOffline =>
+      _surahsFreshness == QuranDataFreshness.offlineFallback;
+  bool get isSurahsStale => _surahsFreshness == QuranDataFreshness.cached;
 
   Surah? get currentSurah => _currentSurah;
   Ayah? get basmalahAyah => _basmalahAyah;
   bool get loadingSurahDetail => _loadingSurahDetail;
   AppFailure? get surahDetailError => _surahDetailError;
+  QuranDataFreshness get detailFreshness => _detailFreshness;
+  bool get isDetailOffline =>
+      _detailFreshness == QuranDataFreshness.offlineFallback;
+  bool get isDetailStale => _detailFreshness == QuranDataFreshness.cached;
+
+  @visibleForTesting
+  void setDataFreshnessForTest({
+    QuranDataFreshness? surahs,
+    QuranDataFreshness? detail,
+  }) {
+    if (surahs != null) _surahsFreshness = surahs;
+    if (detail != null) _detailFreshness = detail;
+    _safeNotify();
+  }
 
   /// Aturan Basmalah (docs/06 §1):
   /// - Surat 1: tidak ada kepala Basmalah (ayat 1 sudah Basmalah)
@@ -146,6 +166,9 @@ class ReaderController extends ChangeNotifier {
 
     try {
       _surahs = await _repository.getSurahs(forceRefresh: forceRefresh);
+      if (_repository is QuranRepositoryImpl) {
+        _surahsFreshness = _repository.surahsFreshness;
+      }
     } catch (e) {
       _surahsError = mapToAppFailure(e);
     } finally {
@@ -182,6 +205,9 @@ class ReaderController extends ChangeNotifier {
       }
 
       _currentSurah = detail;
+      if (_repository is QuranRepositoryImpl) {
+        _detailFreshness = _repository.detailFreshness;
+      }
     } catch (e) {
       _surahDetailError = mapToAppFailure(e);
     } finally {

@@ -5,6 +5,8 @@ import 'package:flutter/widgets.dart';
 import '../../../app/app_colors.dart';
 import '../../../app/app_text_styles.dart';
 import '../../../app/router.dart';
+import '../../../app/theme.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../shared/widgets/app_icon.dart';
 import '../../../shared/widgets/app_search_field.dart';
 import '../../../shared/widgets/app_surface.dart';
@@ -15,6 +17,7 @@ import '../../../shared/widgets/error_state.dart';
 import '../../../shared/widgets/filter_chip_bar.dart';
 import '../../../shared/widgets/pressable.dart';
 import '../../../shared/widgets/skeleton.dart';
+import '../../../shared/widgets/status_banner.dart';
 import '../../player/application/player_controller.dart';
 import '../application/quran_providers.dart';
 import '../domain/surah.dart';
@@ -71,31 +74,55 @@ class _SurahListScreenState extends State<SurahListScreen> {
     final allSurahs = reader.surahs;
     final visible = _filtered(allSurahs);
     final lastRead = reader.lastRead;
+    final screenClass = AppBreakpoints.of(context);
+    final hPad = AppBreakpoints.horizontalPadding(screenClass);
+    final palette = AppThemeScope.paletteOf(context);
 
-    return Column(
-      children: [
-        AppTopBar(
-          leading: const AvatarRing(
-            image: AssetImage('assets/images/avatars/aisyah.png'),
-            semanticLabel: 'Foto profil Aisyah',
-          ),
-          center: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Al-Qur'an", style: AppTextStyles.heading),
-              Text(
-                '114 Surat · Terjemahan & Audio',
-                style: AppTextStyles.micro.copyWith(
-                  color: AppColors.accentLight,
-                  letterSpacing: 0,
+    return ColoredBox(
+      color: palette.background,
+      child: Column(
+        children: [
+          AppTopBar(
+            leading: const AvatarRing(
+              image: AssetImage('assets/images/avatars/aisyah.png'),
+              semanticLabel: 'Foto profil Aisyah',
+            ),
+            center: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Al-Qur'an",
+                  style: AppTextStyles.heading.copyWith(
+                    color: palette.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  '114 Surat · Terjemahan & Audio',
+                  style: AppTextStyles.micro.copyWith(
+                    color: palette.accentLight,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          if (reader.isSurahsOffline || reader.isSurahsStale)
+            Padding(
+              padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 0),
+              child: StatusBanner(
+                kind: reader.isSurahsOffline
+                    ? StatusBannerKind.offline
+                    : StatusBannerKind.stale,
+                message: reader.isSurahsOffline
+                    ? 'Mode offline — menampilkan daftar surat tersimpan'
+                    : 'Menampilkan data tersimpan dari cache',
+                actionLabel: reader.isSurahsOffline ? 'Coba lagi' : 'Segarkan',
+                onAction: () => reader.loadSurahs(forceRefresh: true),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 8),
           child: Column(
             children: [
               AppSearchField(
@@ -167,9 +194,17 @@ class _SurahListScreenState extends State<SurahListScreen> {
             ),
           ),
         Expanded(
-          child: _buildBody(context, reader, player, allSurahs, visible),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: AppBreakpoints.contentMaxWidth(screenClass),
+              ),
+              child: _buildBody(context, reader, player, allSurahs, visible),
+            ),
+          ),
         ),
       ],
+    ),
     );
   }
 

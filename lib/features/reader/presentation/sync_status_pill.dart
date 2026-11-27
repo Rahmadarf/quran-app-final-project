@@ -46,11 +46,15 @@ class SyncStatusPill extends StatelessWidget {
                 child: const SizedBox(width: 8, height: 8),
               ),
               const SizedBox(width: 8),
-              Text(
-                label,
-                style: AppTextStyles.micro.copyWith(
-                  color: AppColors.accentLight,
-                  letterSpacing: 0,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.micro.copyWith(
+                    color: AppColors.accentLight,
+                    letterSpacing: 0,
+                  ),
                 ),
               ),
             ],

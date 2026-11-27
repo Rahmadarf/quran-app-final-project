@@ -133,7 +133,7 @@ class QariPickerTile extends StatelessWidget {
     }
     return ClipOval(
       child: Image(
-        image: option.photo!,
+        image: ResizeImage.resizeIfNeeded(120, null, option.photo!),
         width: 40,
         height: 40,
         fit: BoxFit.cover,

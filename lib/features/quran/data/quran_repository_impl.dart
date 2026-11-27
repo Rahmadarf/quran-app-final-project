@@ -10,12 +10,25 @@ import '../domain/tafsir.dart';
 import 'quran_api.dart';
 import 'surah_dto.dart';
 
+/// Status kesegaran data yang dikembalikan oleh [QuranRepositoryImpl].
+enum QuranDataFreshness {
+  fresh,
+  cached,
+  offlineFallback,
+}
+
 /// Implementasi [QuranRepository] dengan cache memori + disk sederhana
 /// (`SharedPreferences`) dengan kunci versi `v1` (docs/03 §5).
 class QuranRepositoryImpl implements QuranRepository {
   QuranRepositoryImpl({QuranApi? api}) : _api = api ?? QuranApi();
 
   final QuranApi _api;
+
+  QuranDataFreshness _surahsFreshness = QuranDataFreshness.fresh;
+  QuranDataFreshness _detailFreshness = QuranDataFreshness.fresh;
+
+  QuranDataFreshness get surahsFreshness => _surahsFreshness;
+  QuranDataFreshness get detailFreshness => _detailFreshness;
 
   static const String _surahListCacheKey = 'quran_cache_v1_surahs';
   static String _surahDetailCacheKey(int n) => 'quran_cache_v1_surah_$n';
@@ -38,6 +51,7 @@ class QuranRepositoryImpl implements QuranRepository {
         try {
           final parsed = _decodeSurahList(cachedJson);
           _surahListMemory = parsed;
+          _surahsFreshness = QuranDataFreshness.cached;
           return parsed;
         } catch (_) {
           // Abaikan cache rusak dan lanjut ambil dari API.
@@ -52,10 +66,25 @@ class QuranRepositoryImpl implements QuranRepository {
           .map((e) => SurahDto.fromJson(e).toDomain())
           .toList(growable: false);
       _surahListMemory = parsed;
+      _surahsFreshness = QuranDataFreshness.fresh;
       await prefs?.setString(_surahListCacheKey, jsonEncode(rawList));
       return parsed;
     } catch (e) {
-      if (_surahListMemory != null) return _surahListMemory!;
+      if (_surahListMemory != null) {
+        _surahsFreshness = QuranDataFreshness.offlineFallback;
+        return _surahListMemory!;
+      }
+      if (prefs != null) {
+        final cachedJson = prefs.getString(_surahListCacheKey);
+        if (cachedJson != null) {
+          try {
+            final parsed = _decodeSurahList(cachedJson);
+            _surahListMemory = parsed;
+            _surahsFreshness = QuranDataFreshness.offlineFallback;
+            return parsed;
+          } catch (_) {}
+        }
+      }
       rethrow;
     }
   }
@@ -76,6 +105,7 @@ class QuranRepositoryImpl implements QuranRepository {
         try {
           final parsed = await compute(_decodeSurahDetail, cachedJson);
           _cacheDetailInMemory(number, parsed);
+          _detailFreshness = QuranDataFreshness.cached;
           return parsed;
         } catch (_) {
           // Abaikan cache rusak.
@@ -88,11 +118,24 @@ class QuranRepositoryImpl implements QuranRepository {
       final encoded = jsonEncode(rawMap);
       final parsed = await compute(_decodeSurahDetail, encoded);
       _cacheDetailInMemory(number, parsed);
+      _detailFreshness = QuranDataFreshness.fresh;
       await prefs?.setString(_surahDetailCacheKey(number), encoded);
       return parsed;
     } catch (e) {
       if (_surahDetailMemory.containsKey(number)) {
+        _detailFreshness = QuranDataFreshness.offlineFallback;
         return _surahDetailMemory[number]!;
+      }
+      if (prefs != null) {
+        final cachedJson = prefs.getString(_surahDetailCacheKey(number));
+        if (cachedJson != null) {
+          try {
+            final parsed = await compute(_decodeSurahDetail, cachedJson);
+            _cacheDetailInMemory(number, parsed);
+            _detailFreshness = QuranDataFreshness.offlineFallback;
+            return parsed;
+          } catch (_) {}
+        }
       }
       rethrow;
     }

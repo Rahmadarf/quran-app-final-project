@@ -49,7 +49,11 @@ class AvatarRing extends StatelessWidget {
               ),
               child: ClipOval(
                 child: Image(
-                  image: image,
+                  image: ResizeImage.resizeIfNeeded(
+                    (size * 3).round(),
+                    null,
+                    image,
+                  ),
                   width: size,
                   height: size,
                   fit: BoxFit.cover,
@@ -117,7 +121,7 @@ class QariAvatarItem extends StatelessWidget {
               ),
               child: ClipOval(
                 child: Image(
-                  image: image,
+                  image: ResizeImage.resizeIfNeeded(168, null, image),
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,

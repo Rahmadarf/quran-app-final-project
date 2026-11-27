@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../../../app/app_colors.dart';
@@ -23,8 +25,37 @@ class HomeScreen extends StatelessWidget {
 
   static const _aisyah = AssetImage('assets/images/avatars/aisyah.png');
 
+  static const _favoriteQaris = [
+    (
+      id: '05',
+      name: 'Al-Afasi',
+      image: AssetImage('assets/images/qari/misyari-rasyid-al-afasi.webp'),
+    ),
+    (
+      id: '03',
+      name: 'As-Sudais',
+      image: AssetImage('assets/images/qari/abdurrahman-as-sudais.webp'),
+    ),
+    (
+      id: '01',
+      name: 'Al-Juhany',
+      image: AssetImage('assets/images/qari/abdullah-al-juhany.webp'),
+    ),
+    (
+      id: '04',
+      name: 'Al-Dosari',
+      image: AssetImage('assets/images/qari/ibrahim-al-dossari.webp'),
+    ),
+    (
+      id: '02',
+      name: 'Al-Qasim',
+      image: AssetImage('assets/images/qari/abdul-muhsin-al-qasim.webp'),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final player = PlayerScope.of(context);
     void openReader() => Navigator.of(context).pushNamed(AppRoutes.reader);
 
     return Column(
@@ -67,47 +98,24 @@ class HomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
                 const SizedBox(height: 14),
-                const SingleChildScrollView(
+                SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      QariAvatarItem(
-                        image: AssetImage(
-                          'assets/images/qari/misyari-rasyid-al-afasi.webp',
+                      for (var i = 0; i < _favoriteQaris.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 16),
+                        QariAvatarItem(
+                          image: _favoriteQaris[i].image,
+                          name: _favoriteQaris[i].name,
+                          selected:
+                              player.selectedQariId == _favoriteQaris[i].id,
+                          onTap: () => unawaited(
+                            player.selectQari(_favoriteQaris[i].id),
+                          ),
                         ),
-                        name: 'Al-Afasi',
-                        selected: true,
-                      ),
-                      SizedBox(width: 16),
-                      QariAvatarItem(
-                        image: AssetImage(
-                          'assets/images/qari/abdurrahman-as-sudais.webp',
-                        ),
-                        name: 'As-Sudais',
-                      ),
-                      SizedBox(width: 16),
-                      QariAvatarItem(
-                        image: AssetImage(
-                          'assets/images/qari/abdullah-al-juhany.webp',
-                        ),
-                        name: 'Al-Juhany',
-                      ),
-                      SizedBox(width: 16),
-                      QariAvatarItem(
-                        image: AssetImage(
-                          'assets/images/qari/ibrahim-al-dossari.webp',
-                        ),
-                        name: 'Al-Dosari',
-                      ),
-                      SizedBox(width: 16),
-                      QariAvatarItem(
-                        image: AssetImage(
-                          'assets/images/qari/abdul-muhsin-al-qasim.webp',
-                        ),
-                        name: 'Al-Qasim',
-                      ),
+                      ],
                     ],
                   ),
                 ),

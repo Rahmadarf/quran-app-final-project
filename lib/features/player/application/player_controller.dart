@@ -61,6 +61,7 @@ class PlayerController extends ChangeNotifier {
   ValueListenable<PlaybackPosition> get positionListenable => _positionNotifier;
   PlaybackPosition get position => _positionNotifier.value;
   String get selectedQariId => _selectedQariId;
+  String get selectedQariName => _qariDisplayName(_selectedQariId);
   List<Surah> get cachedSurahs => _cachedSurahs;
   String? get statusNotice => _statusNotice;
 
@@ -157,6 +158,23 @@ class PlayerController extends ChangeNotifier {
     final list = await _quranRepository.getSurahs();
     _cachedSurahs = list;
     return list;
+  }
+
+  /// Mengganti qari aktif. Jika ada surat yang sedang dimuat, langsung
+  /// memutar ulang surat tersebut dengan qari baru.
+  Future<void> selectQari(String qariId, {String? qariName}) async {
+    _selectedQariId = qariId;
+    final currentSurah = _state.current?.surahNumber;
+    if (currentSurah != null && _state.phase != PlayerPhase.idle) {
+      await playSurah(
+        currentSurah,
+        qariId: qariId,
+        qariName: qariName,
+      );
+      return;
+    }
+    _safeNotify();
+    unawaited(_persist());
   }
 
   /// Memutar surat dari API equran.id berdasarkan [surahNumber] dan [qariId]

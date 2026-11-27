@@ -1,19 +1,26 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quran_app_final_project/app/theme.dart';
+import 'package:quran_app_final_project/core/utils/breakpoints.dart';
 import 'package:quran_app_final_project/features/player/application/player_controller.dart';
 import 'package:quran_app_final_project/features/player/data/audio_engine.dart';
 import 'package:quran_app_final_project/features/player/domain/media_item.dart';
 import 'package:quran_app_final_project/features/player/domain/player_state.dart';
+import 'package:quran_app_final_project/features/player/presentation/mini_player.dart';
 import 'package:quran_app_final_project/features/quran/application/quran_providers.dart';
+import 'package:quran_app_final_project/features/quran/data/quran_repository_impl.dart';
 import 'package:quran_app_final_project/features/quran/domain/ayah.dart';
 import 'package:quran_app_final_project/features/quran/domain/quran_repository.dart';
 import 'package:quran_app_final_project/features/quran/domain/surah.dart';
 import 'package:quran_app_final_project/features/quran/domain/tafsir.dart';
+import 'package:quran_app_final_project/features/quran/presentation/surah_list_screen.dart';
 import 'package:quran_app_final_project/features/reader/application/reader_controller.dart';
 import 'package:quran_app_final_project/features/reader/application/sync_engine.dart';
 import 'package:quran_app_final_project/features/reader/domain/reader_settings.dart';
 import 'package:quran_app_final_project/features/reader/presentation/basmalah_header.dart';
 import 'package:quran_app_final_project/features/reader/presentation/reader_screen.dart';
+import 'package:quran_app_final_project/shared/widgets/avatar.dart';
+import 'package:quran_app_final_project/shared/widgets/status_banner.dart';
 
 class _FakeReaderQuranRepository implements QuranRepository {
   static final _fatihah = Surah(
@@ -309,6 +316,161 @@ void main() {
       );
       expect(reader.settings.mode, ReaderMode.mushaf);
       expect(reader.settings.arabicFontSize, 40.0);
+    });
+  });
+
+  group('Breakpoints, Tema, Offline/Stale Banner, cacheWidth & 200% Scale', () {
+    test('AppBreakpoints memetakan Compact, Medium, dan Expanded dengan benar', () {
+      expect(AppBreakpoints.fromWidth(320), ScreenClass.compact);
+      expect(AppBreakpoints.fromWidth(599), ScreenClass.compact);
+      expect(AppBreakpoints.fromWidth(600), ScreenClass.medium);
+      expect(AppBreakpoints.fromWidth(839), ScreenClass.medium);
+      expect(AppBreakpoints.fromWidth(840), ScreenClass.expanded);
+      expect(AppBreakpoints.fromWidth(1440), ScreenClass.expanded);
+    });
+
+    testWidgets('AppThemeScope mengganti palet terang dan gelap', (tester) async {
+      final theme = AppThemeController(initialMode: AppThemeMode.dark);
+      addTearDown(theme.dispose);
+      late AppThemePalette seenPalette;
+
+      await tester.pumpWidget(
+        AppThemeScope(
+          controller: theme,
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) {
+                seenPalette = AppThemeScope.paletteOf(context);
+                return ColoredBox(color: seenPalette.background);
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(seenPalette.brightness, Brightness.dark);
+
+      theme.setMode(AppThemeMode.light);
+      await tester.pump();
+      expect(seenPalette.brightness, Brightness.light);
+      expect(seenPalette.background, AppThemePalette.light.background);
+    });
+
+    testWidgets('MiniPlayerLeading dan QariAvatarItem memakai ResizeImage (cacheWidth)',
+        (tester) async {
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Column(
+            children: [
+              MiniPlayerLeading.image(
+                AssetImage('assets/images/covers/ar-rahman.png'),
+              ),
+              QariAvatarItem(
+                image: AssetImage(
+                  'assets/images/qari/misyari-rasyid-al-afasi.webp',
+                ),
+                name: 'Al-Afasi',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final images = tester.widgetList<Image>(find.byType(Image)).toList();
+      expect(images, hasLength(2));
+      for (final img in images) {
+        expect(img.image, isA<ResizeImage>());
+      }
+    });
+
+    testWidgets('SurahListScreen menampilkan banner offline dan stale',
+        (tester) async {
+      final repo = _FakeReaderQuranRepository();
+      final reader = ReaderController(repository: repo);
+      final player = PlayerController(
+        engine: SimulatedAudioEngine(),
+        quranRepository: repo,
+      );
+      addTearDown(reader.dispose);
+      addTearDown(player.dispose);
+
+      await reader.loadSurahs();
+      reader.setDataFreshnessForTest(surahs: QuranDataFreshness.offlineFallback);
+
+      await tester.pumpWidget(
+        PlayerScope(
+          controller: player,
+          child: ReaderScope(
+            controller: reader,
+            child: WidgetsApp(
+              color: AppThemePalette.dark.background,
+              pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
+                settings: settings,
+                pageBuilder: (context, _, _) => builder(context),
+              ),
+              home: const SurahListScreen(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(StatusBanner), findsOneWidget);
+      expect(
+        find.text('Mode offline — menampilkan daftar surat tersimpan'),
+        findsOneWidget,
+      );
+
+      reader.setDataFreshnessForTest(surahs: QuranDataFreshness.cached);
+      await tester.pump();
+      expect(
+        find.text('Menampilkan data tersimpan dari cache'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('ReaderScreen tahan skala teks 200% tanpa overflow', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      final repo = _FakeReaderQuranRepository();
+      final reader = ReaderController(repository: repo);
+      final player = PlayerController(
+        engine: SimulatedAudioEngine(),
+        quranRepository: repo,
+      );
+      addTearDown(reader.dispose);
+      addTearDown(player.dispose);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+            textScaler: TextScaler.linear(2.0),
+          ),
+          child: PlayerScope(
+            controller: player,
+            child: ReaderScope(
+              controller: reader,
+              child: WidgetsApp(
+                color: AppThemePalette.dark.background,
+                pageRouteBuilder: <T>(settings, builder) => PageRouteBuilder<T>(
+                  settings: settings,
+                  pageBuilder: (context, _, _) => builder(context),
+                ),
+                home: const ReaderScreen(surahNumber: 1),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Al-Fatihah'), findsWidgets);
+      expect(tester.takeException(), isNull);
     });
   });
 }
