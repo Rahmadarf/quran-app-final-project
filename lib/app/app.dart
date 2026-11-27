@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import '../features/player/application/player_controller.dart';
 import '../features/quran/application/quran_providers.dart';
 import '../features/reader/application/reader_controller.dart';
+import '../shared/widgets/theme_toggle_fab.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -26,6 +27,7 @@ class _QuranAppState extends State<QuranApp> {
   @override
   void initState() {
     super.initState();
+    unawaited(_theme.restore());
     unawaited(_player.restore());
     unawaited(_reader.restore());
   }
@@ -59,10 +61,17 @@ class _QuranAppState extends State<QuranApp> {
                   settings: settings,
                   pageBuilder: (context, _, _) => builder(context),
                 ),
-                // Mouse dan stylus ikut bisa menggulir di web/desktop.
+                // Mouse & stylus ikut bisa menggulir di web/desktop +
+                // tombol ganti tema mengambang yang selalu dapat dijangkau.
                 builder: (context, child) => ScrollConfiguration(
                   behavior: const _AppScrollBehavior(),
-                  child: child ?? const SizedBox.shrink(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      child ?? const SizedBox.shrink(),
+                      const FloatingThemeToggle(),
+                    ],
+                  ),
                 ),
               ),
             ),
